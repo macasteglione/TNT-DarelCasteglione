@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ejercicio 1: Compartir Texto"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etShare"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Escribe algo para compartir" />
+
+        <Button
+            android:id="@+id/btnShare"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Compartir con..." />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="16dp"
+            android:background="@android:color/darker_gray" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ejercicio 2: Navegador Web"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ej: www.google.com"
+            android:inputType="textUri" />
+
+        <Button
+            android:id="@+id/btnOpenBrowser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ir a la URL" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="16dp"
+            android:background="@android:color/darker_gray" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ejercicio 3: Esquemas URI"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ciudad, calle o coordenadas" />
+
+        <Button
+            android:id="@+id/btnOpenMap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ver en Mapa" />
+
+        <EditText
+            android:id="@+id/etPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Número de teléfono"
+            android:inputType="phone" />
+
+        <Button
+            android:id="@+id/btnDial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Marcar Número" />
+
+    </LinearLayout>
+</ScrollView>
