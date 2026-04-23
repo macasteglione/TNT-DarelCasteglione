@@ -4,8 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-// Asegúrate de que este import coincida con el nombre de tu paquete
 import com.example.practicaintents.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -18,6 +18,14 @@ class MainActivity : AppCompatActivity() {
         // Inicialización de ViewBinding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        when {
+            intent?.action == Intent.ACTION_SEND -> {
+                if ("text/plain" == intent.type) {
+                    handleSendText(intent) // Maneja el texto recibido
+                }
+            }
+        }
 
         // --- EJERCICIO 1: Compartir Texto ---
         binding.btnShare.setOnClickListener {
@@ -37,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                 if (sendIntent.resolveActivity(packageManager) != null) {
                     startActivity(shareIntent)
                 } else {
-                    // En Android 11+ esto fallará si no agregaste <queries> en el Manifest
+
                     startActivity(shareIntent)
                 }
             }
@@ -57,7 +65,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // --- EJERCICIO 3: Esquemas URI (Mapas y Teléfono) ---
+        // --- EJERCICIO 3: (Mapas y Teléfono) ---
 
         // A. Mapas
         binding.btnOpenMap.setOnClickListener {
@@ -69,7 +77,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // B. Marcaje Telefónico
+        // B. Telefonos
         binding.btnDial.setOnClickListener {
             val phone = binding.etPhone.text.toString()
             if (phone.isNotEmpty()) {
@@ -78,6 +86,50 @@ class MainActivity : AppCompatActivity() {
                 }
                 startActivity(dialIntent)
             }
+        }
+
+
+
+
+        // --- EJERCICIO 4: Cámara ---
+        val tomarFotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+            bitmap?.let {
+                binding.miImageView.setImageBitmap(it)
+            }
+        }
+
+        binding.btnCamara.setOnClickListener {
+            tomarFotoLauncher.launch(null)// pasar a la cámara
+        }
+
+
+
+
+        // --- EJERCICIO 5: Pasar a otra pantalla ---
+
+        binding.btnPasar.setOnClickListener {
+            val nombre = binding.etNombre.text.toString()
+            val apellido = binding.etApellido.text.toString()
+
+            if (nombre.isNotEmpty() && apellido.isNotEmpty()) {
+                val intent = Intent(this, OtraActivity::class.java)
+
+                // Pasamos los datos a la siguiente pantalla
+                intent.putExtra("EXTRA_NOMBRE", nombre)
+                intent.putExtra("EXTRA_APELLIDO", apellido)
+
+                startActivity(intent)
+            } else {
+                // Opcional: mostrar un aviso si los campos están vacíos
+                Toast.makeText(this, "Por favor, completa ambos campos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // --- EJERCICIO 6: Intent Filters ---
+    private fun handleSendText(intent: Intent) {
+        intent.getStringExtra(Intent.EXTRA_TEXT)?.let { textoRecibido ->
+            binding.textFilter.text = textoRecibido
         }
     }
 }

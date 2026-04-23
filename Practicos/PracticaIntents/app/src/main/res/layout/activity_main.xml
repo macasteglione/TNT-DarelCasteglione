@@ -12,20 +12,22 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ejercicio 1: Compartir Texto"
+            android:text="@string/ejercicio_1_compartir_texto"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etShare"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Escribe algo para compartir" />
+            android:inputType="text"
+            android:importantForAutofill="no"
+            android:hint="@string/escribe_algo_para_compartir" />
 
         <Button
             android:id="@+id/btnShare"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Compartir con..." />
+            android:text="@string/compartir_con" />
 
         <View
             android:layout_width="match_parent"
@@ -36,21 +38,22 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ejercicio 2: Navegador Web"
+            android:text="@string/ejercicio_2_navegador_web"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etUrl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ej: www.google.com"
+            android:autofillHints=""
+            android:hint="@string/ej_www_google_com"
             android:inputType="textUri" />
 
         <Button
             android:id="@+id/btnOpenBrowser"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ir a la URL" />
+            android:text="@string/ir_a_la_url" />
 
         <View
             android:layout_width="match_parent"
@@ -61,33 +64,113 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ejercicio 3: Esquemas URI"
+            android:text="@string/ejercicio_3_esquemas_uri"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etLocation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ciudad, calle o coordenadas" />
+            android:autofillHints=""
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:hint="@string/ciudad_calle_o_coordenadas" />
 
         <Button
             android:id="@+id/btnOpenMap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ver en Mapa" />
+            android:text="@string/ver_en_mapa" />
 
         <EditText
             android:id="@+id/etPhone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Número de teléfono"
+            android:autofillHints=""
+            android:hint="@string/n_mero_de_tel_fono"
             android:inputType="phone" />
 
         <Button
             android:id="@+id/btnDial"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Marcar Número" />
+            android:text="@string/marcar_n_mero" />
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ejercicio_4_entrar_a_la_c_mara"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnCamara"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/entrar_a_la_c_mara" />
+
+        <ImageView
+            android:id="@+id/miImageView"
+            android:layout_width="match_parent"
+            android:layout_height="540dp"
+            android:layout_marginTop="16dp"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/vista_previa_de_la_foto" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ejercicio_5_navegaci_n"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etNombre"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginVertical="16dp"
+                android:hint="@string/nombre"
+                android:autofillHints="personGivenName"
+                android:inputType="textPersonName" />
+
+            <EditText
+                android:id="@+id/etApellido"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginVertical="16dp"
+                android:hint="@string/apellido"
+                android:autofillHints="personFamilyName"
+                android:inputType="textPersonName" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnPasar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/otra_pantalla" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/ejercicio_6_intent_filters"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textStyle="bold"
+            android:textColor="@android:color/holo_red_dark"/>
 
     </LinearLayout>
 </ScrollView>
