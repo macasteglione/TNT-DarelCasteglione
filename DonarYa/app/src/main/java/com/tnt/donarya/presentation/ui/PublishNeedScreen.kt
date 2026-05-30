@@ -1,4 +1,4 @@
-package com.tnt.donarya.ui.screens
+package com.tnt.donarya.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,10 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.NeedType
-import com.tnt.donarya.data.model.UrgencyLevel
+import com.tnt.donarya.domain.model.NeedType
+import com.tnt.donarya.domain.model.UrgencyLevel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -358,7 +359,7 @@ fun RowScope.UrgencyOption(
                 fontSize = 11.sp,
                 color = if (isSelected) color else Color(0xFF6B7280),
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
                 lineHeight = 15.sp
             )
         }

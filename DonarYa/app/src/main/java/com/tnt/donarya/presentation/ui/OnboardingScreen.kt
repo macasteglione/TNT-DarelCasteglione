@@ -1,4 +1,4 @@
-package com.tnt.donarya.ui.screens
+package com.tnt.donarya.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.UserRole
+import com.tnt.donarya.domain.model.UserRole
 
 @Composable
 fun OnboardingScreen(
@@ -81,7 +81,7 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Puente\nSolidario",
+                text = "DonarYa",
                 color = Color.White,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
@@ -132,13 +132,9 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Button(
-                onClick = {
-                    when (selectedRole) {
-                        UserRole.MERENDERO -> onMerenderoSelected()
-                        UserRole.DONANTE -> onDonanteSelected()
-                        null -> onDonanteSelected() // default to donante view
-                    }
-                },
+                onClick = (
+                    onLogin
+                    ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),

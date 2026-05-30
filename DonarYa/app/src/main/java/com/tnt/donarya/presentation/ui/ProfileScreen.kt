@@ -1,4 +1,4 @@
-package com.tnt.donarya.ui.screens
+package com.tnt.donarya.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,21 +38,34 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.DonationRecord
-import com.tnt.donarya.data.model.NeedType
-import com.tnt.donarya.data.model.SampleData
+import com.tnt.donarya.domain.model.DonationRecord
+import com.tnt.donarya.domain.model.NeedType
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    role: String,
     onAlertas: () -> Unit,
-    onDonar: () -> Unit
+    onDonar: () -> Unit,
+    onLogout: () -> Unit
 ) {
-    val profile = SampleData.donante
+
+    val user = UserRepositoryImpl.getCurrentUser()
     remember { mutableStateOf(false) }
+
+    // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
+    val initials = user?.nombre
+        ?.split(" ")
+        ?.filter { it.isNotBlank() }
+        ?.take(2)
+        ?.joinToString("") { it.first().uppercase() }
+        ?: "?"
 
     Scaffold(
         bottomBar = {
@@ -90,7 +103,11 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            IconButton(onClick = {}) {
+                            IconButton(onClick = {
+                                UserRepositoryImpl.logout()
+                                onLogout()
+                            }
+                            ) {
                                 Icon(
                                     Icons.Default.Settings,
                                     contentDescription = "Ajustes",
@@ -106,7 +123,7 @@ fun ProfileScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "JM",
+                                initials,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 28.sp
@@ -114,12 +131,16 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            profile.name,
+                            user?.nombre ?: "Invitado",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp
                         )
-                        Text("Donante", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(
+                            if (user?.rol == UserRole.MERENDERO) "Merendero" else "Donante",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }
@@ -147,59 +168,97 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            ImpactStat("${profile.donationsCount}", "donaciones", "+5 este mes")
-                            ImpactStat("${profile.mendecerosHelped}", "merenderos\nayudados", null)
-                            ImpactStat("${profile.beneficiados}", "beneficiados", null)
+                            if (user?.rol?.name == "merendero") {
+
+                                ImpactStat(
+                                    "${user?.cantidadChicos ?: 0}",
+                                    "chicos\natendidos",
+                                    null
+                                )
+
+                                ImpactStat(
+                                    "3",
+                                    "necesidades\nactivas",
+                                    "+1 hoy"
+                                )
+
+                                ImpactStat(
+                                    "12",
+                                    "donaciones\nrecibidas",
+                                    null
+                                )
+
+                            } else {
+
+                                ImpactStat(
+                                    "${user?.donationsCount ?: 0}",
+                                    "donaciones",
+                                    "+5 este mes"
+                                )
+
+                                ImpactStat(
+                                    "${user?.mendecerosHelped ?: 0}",
+                                    "merenderos\nayudados",
+                                    null
+                                )
+
+                                ImpactStat(
+                                    "${user?.beneficiados ?: 0}",
+                                    "beneficiados",
+                                    null)
+                            }
                         }
                     }
                 }
             }
 
-            item {
-                // Badges
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Insignias",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            color = Color(0xFF111827)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            profile.badges.forEach { badge ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (badge.earned) Color(0xFFD8F3DC) else Color(
-                                                    0xFFF3F4F6
-                                                )
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(badge.emoji, fontSize = 24.sp)
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        badge.name,
-                                        fontSize = 11.sp,
-                                        color = if (badge.earned) Color(0xFF374151) else Color(
-                                            0xFF9CA3AF
+            if (user?.rol != UserRole.MERENDERO) {
+                item {
+                    // Badges
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "Insignias",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF111827)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                user?.badges?.forEach { badge ->
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(52.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (badge.earned) Color(0xFFD8F3DC) else Color(
+                                                        0xFFF3F4F6
+                                                    )
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(badge.emoji, fontSize = 24.sp)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            badge.name,
+                                            fontSize = 11.sp,
+                                            color = if (badge.earned) Color(0xFF374151) else Color(
+                                                0xFF9CA3AF
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -207,31 +266,33 @@ fun ProfileScreen(
                 }
             }
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Donaciones recientes",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = Color(0xFF111827)
-                    )
-                    TextButton(onClick = {}) {
-                        Text("Ver historial", color = Color(0xFF40916C), fontSize = 13.sp)
+            if (user?.rol != UserRole.MERENDERO) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Donaciones recientes",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF111827)
+                        )
+                        TextButton(onClick = {}) {
+                            Text("Ver historial", color = Color(0xFF40916C), fontSize = 13.sp)
+                        }
                     }
                 }
-            }
 
-            items(profile.recentDonations) { donation ->
-                DonationRow(donation)
+                items(user?.recentDonations ?: emptyList()) {
+                    donation -> DonationRow(donation) }
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
+
         }
     }
 }
@@ -244,7 +305,7 @@ fun ImpactStat(value: String, label: String, extra: String?) {
             label,
             fontSize = 12.sp,
             color = Color(0xFF6B7280),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
             lineHeight = 16.sp
         )
         extra?.let {

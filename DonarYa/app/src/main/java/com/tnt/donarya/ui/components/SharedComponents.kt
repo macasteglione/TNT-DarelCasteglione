@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.UrgencyLevel
+import com.tnt.donarya.domain.model.UrgencyLevel
 
 @Composable
 fun UrgencyBadge(urgency: UrgencyLevel, modifier: Modifier = Modifier) {

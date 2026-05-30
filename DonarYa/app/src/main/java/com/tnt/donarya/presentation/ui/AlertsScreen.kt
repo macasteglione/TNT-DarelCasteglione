@@ -1,4 +1,4 @@
-package com.tnt.donarya.ui.screens
+package com.tnt.donarya.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,10 +47,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.AlertItem
-import com.tnt.donarya.data.model.AlertType
-import com.tnt.donarya.data.model.SampleData
+import com.tnt.donarya.domain.model.AlertItem
+import com.tnt.donarya.domain.model.AlertType
 import com.tnt.donarya.ui.components.DonarYaBottomBar
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.tnt.donarya.presentation.state.AlertsUiState
+import com.tnt.donarya.presentation.viewmodel.AlertsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,114 +62,144 @@ fun AlertsScreen(
     onDonar: () -> Unit,
     onPerfil: () -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Todas", "Urgentes", "Respuestas", "Sistema")
-    val alerts = SampleData.alerts
-    val unreadCount = alerts.count { !it.isRead }
+    val viewModel: AlertsViewModel = viewModel()
 
-    Scaffold(
-        topBar = {
-            Column(modifier = Modifier.background(Color.White)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Alertas",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            color = Color(0xFF111827)
-                        )
-                        if (unreadCount > 0) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFE63946)),
-                                contentAlignment = Alignment.Center
-                            ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    val tabs = listOf(
+        "Todas",
+        "Urgentes",
+        "Respuestas",
+        "Sistema"
+    )
+
+    when (uiState) {
+
+        is AlertsUiState.Loading -> {
+
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Cargando...")
+            }
+        }
+
+        is AlertsUiState.Success -> {
+
+            val state = uiState as AlertsUiState.Success
+
+            val alerts = state.alerts
+
+            val unreadCount = alerts.count { !it.isRead }
+
+            Scaffold(
+                topBar = {
+                    Column(modifier = Modifier.background(Color.White)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "$unreadCount",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                                    "Alertas",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 24.sp,
+                                    color = Color(0xFF111827)
+                                )
+                                if (unreadCount > 0) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFE63946)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "$unreadCount",
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                            TextButton(onClick = {}) {
+                                Text("Marcar leídas", color = Color(0xFF40916C), fontSize = 13.sp)
+                            }
+                        }
+                        ScrollableTabRow(
+                            selectedTabIndex = selectedTab,
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF40916C),
+                            edgePadding = 16.dp,
+                            indicator = { tabPositions ->
+                                TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                    color = Color(0xFF40916C)
+                                )
+                            }
+                        ) {
+                            tabs.forEachIndexed { index, tab ->
+                                Tab(
+                                    selected = selectedTab == index,
+                                    onClick = { selectedTab = index },
+                                    text = { Text(tab, fontSize = 14.sp) },
+                                    selectedContentColor = Color(0xFF40916C),
+                                    unselectedContentColor = Color(0xFF6B7280)
                                 )
                             }
                         }
                     }
-                    TextButton(onClick = {}) {
-                        Text("Marcar leídas", color = Color(0xFF40916C), fontSize = 13.sp)
-                    }
-                }
-                ScrollableTabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF40916C),
-                    edgePadding = 16.dp,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = Color(0xFF40916C)
-                        )
-                    }
+                },
+                bottomBar = {
+                    DonarYaBottomBar(
+                        currentRoute = "alerts",
+                        onAlertas = {},
+                        onDonar = onDonar,
+                        onPerfil = onPerfil,
+                        alertCount = unreadCount
+                    )
+                },
+                containerColor = Color(0xFFF9FAFB)
+            ) { padding ->
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    tabs.forEachIndexed { index, tab ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(tab, fontSize = 14.sp) },
-                            selectedContentColor = Color(0xFF40916C),
-                            unselectedContentColor = Color(0xFF6B7280)
+                    item {
+                        Text(
+                            "HOY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF9CA3AF),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                         )
                     }
+                    items(alerts.take(3)) { alert ->
+                        AlertCard(alert)
+                    }
+                    item {
+                        Text(
+                            "AYER",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF9CA3AF),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(alerts.drop(3)) { alert ->
+                        AlertCard(alert)
+                    }
                 }
-            }
-        },
-        bottomBar = {
-            DonarYaBottomBar(
-                currentRoute = "alerts",
-                onAlertas = {},
-                onDonar = onDonar,
-                onPerfil = onPerfil,
-                alertCount = unreadCount
-            )
-        },
-        containerColor = Color(0xFFF9FAFB)
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            item {
-                Text(
-                    "HOY",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF9CA3AF),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                )
-            }
-            items(alerts.take(3)) { alert ->
-                AlertCard(alert)
-            }
-            item {
-                Text(
-                    "AYER",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF9CA3AF),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                )
-            }
-            items(alerts.drop(3)) { alert ->
-                AlertCard(alert)
             }
         }
     }

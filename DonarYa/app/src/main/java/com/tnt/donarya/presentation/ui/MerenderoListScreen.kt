@@ -1,4 +1,4 @@
-package com.tnt.donarya.ui.screens
+package com.tnt.donarya.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,12 +37,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.model.Merendero
-import com.tnt.donarya.data.model.SampleData
-import com.tnt.donarya.data.model.UrgencyLevel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.domain.model.Merendero
+import com.tnt.donarya.domain.model.UrgencyLevel
+import com.tnt.donarya.presentation.viewmodel.MerenderoListViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 import com.tnt.donarya.ui.components.StatCard
 import com.tnt.donarya.ui.components.UrgencyBadge
+import androidx.compose.runtime.getValue
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.MerenderoWithNeeds
+import com.tnt.donarya.presentation.state.MerenderoListUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +56,19 @@ fun MerenderoListScreen(
     onAlertas: () -> Unit,
     onPerfil: () -> Unit
 ) {
-    val merenderos = SampleData.merenderos
+
+    val viewModel: MerenderoListViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
+    val user = UserRepositoryImpl.getCurrentUser()
+
+    // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
+    val initials = user?.nombre
+        ?.split(" ")
+        ?.filter { it.isNotBlank() }
+        ?.take(2)
+        ?.joinToString("") { it.first().uppercase() }
+        ?: "?"
 
     Scaffold(
         bottomBar = {
@@ -85,7 +103,7 @@ fun MerenderoListScreen(
                     ) {
                         Column {
                             Text(
-                                "Buenos días, Julián 👋",
+                                "Buenos días "+user?.nombre,
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontSize = 14.sp
                             )
@@ -105,7 +123,7 @@ fun MerenderoListScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "JM",
+                                initials,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
@@ -157,12 +175,52 @@ fun MerenderoListScreen(
                 }
             }
 
-            items(merenderos) { merendero ->
-                MerenderoCard(
-                    merendero = merendero,
-                    onClick = { onMerenderoClick(merendero.id) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+            when (uiState) {
+
+                is MerenderoListUiState.Loading -> {
+
+                    item {
+                        Text(
+                            "Cargando...",
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+
+                is MerenderoListUiState.Error -> {
+
+                    val message =
+                        (uiState as MerenderoListUiState.Error).message
+
+                    item {
+                        Text(
+                            message,
+                            modifier = Modifier.padding(16.dp),
+                            color = Color.Red
+                        )
+                    }
+                }
+
+                is MerenderoListUiState.Success -> {
+
+                    val merenderos =
+                        (uiState as MerenderoListUiState.Success)
+                            .merenderos
+
+                    items(merenderos) { item ->
+
+                        MerenderoCard(
+                            item = item,
+                            onClick = {
+                                onMerenderoClick(item.merendero.id)
+                            },
+                            modifier = Modifier.padding(
+                                horizontal = 16.dp,
+                                vertical = 6.dp
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -170,19 +228,40 @@ fun MerenderoListScreen(
 
 @Composable
 fun MerenderoCard(
-    merendero: Merendero,
+    item: MerenderoWithNeeds,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val urgentNeed = merendero.needs.firstOrNull { it.urgency == UrgencyLevel.URGENTE }
-    val topNeed = merendero.needs.firstOrNull()
+
+    val merendero = item.merendero
+    val needs = item.needs
+    val urgentNeed =
+        needs.firstOrNull {
+            it.urgency == UrgencyLevel.URGENTE
+        }
+
+    val topNeed = needs.firstOrNull()
+
+    // si ya esta cubierta la necesidad
+    val isCovered =
+        needs.isNotEmpty() &&
+                needs.all { it.isCovered }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                enabled = !isCovered,
+                onClick = onClick
+            ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                if (isCovered)
+                    Color(0xFFF3F4F6)
+                else
+                    Color.White
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -230,7 +309,7 @@ fun MerenderoCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val donorsOnWay = merendero.needs.sumOf { it.donorsOnWay }
+                val donorsOnWay = needs.sumOf { it.donorsOnWay }
                 if (donorsOnWay > 0) {
                     Icon(
                         Icons.Default.DirectionsWalk,
@@ -245,7 +324,20 @@ fun MerenderoCard(
                         fontWeight = FontWeight.Medium
                     )
                 } else {
-                    Text("Sin respuestas aún", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+                    if (isCovered) {
+
+                        Text(
+                            "Ya no necesita donaciones",
+                            fontSize = 12.sp,
+                            color = Color(0xFF166534),
+                            fontWeight = FontWeight.Medium
+                        )
+
+                    } else if (donorsOnWay > 0) {
+
+                        Text("Donadores en Camino", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+                    }
+
                 }
             }
         }
