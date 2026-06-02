@@ -1,88 +1,11 @@
-package com.tnt.donarya.data.model
-
-enum class UserRole { DONANTE, MERENDERO }
-
-enum class UrgencyLevel(val label: String, val color: Long) {
-    URGENTE("Urgente", 0xFFE63946),
-    ESTA_SEMANA("Esta semana", 0xFFF4A261),
-    SIN_APURO("Sin apuro", 0xFF52B788)
-}
-
-enum class NeedType(val label: String, val emoji: String) {
-    ALIMENTOS("Alimentos", "🍞"),
-    ROPA("Ropa", "👕"),
-    GAS("Gas", "🔥"),
-    ABRIGO("Abrigo", "🧥"),
-    OTROS("Otros", "📦")
-}
-
-data class NeedItem(
-    val id: String,
-    val title: String,
-    val description: String,
-    val type: NeedType,
-    val urgency: UrgencyLevel,
-    val items: List<String> = emptyList(),
-    val publishedMinutesAgo: Int = 0,
-    val donorsOnWay: Int = 0,
-    val isCovered: Boolean = false
-)
-
-data class Merendero(
-    val id: String,
-    val name: String,
-    val address: String,
-    val neighborhood: String,
-    val coordinator: String,
-    val whatsapp: String,
-    val kidsCount: Int,
-    val activeNeeds: Int,
-    val coveredNeeds: Int,
-    val isVerified: Boolean = false,
-    val distanceKm: Double = 0.0,
-    val walkMinutes: Int = 0,
-    val needs: List<NeedItem> = emptyList(),
-    val latitude: Double = -42.7692,
-    val longitude: Double = -65.0375
-)
-
-data class AlertItem(
-    val id: String,
-    val title: String,
-    val subtitle: String,
-    val type: AlertType,
-    val minutesAgo: Int,
-    val isRead: Boolean = false,
-    val isUrgent: Boolean = false
-)
-
-enum class AlertType { URGENTE, RESPUESTA, CUBIERTA, AGRADECIMIENTO, RECORDATORIO, SISTEMA }
-
-data class UserProfile(
-    val name: String,
-    val role: UserRole,
-    val donationsCount: Int = 0,
-    val mendecerosHelped: Int = 0,
-    val beneficiados: Int = 0,
-    val badges: List<Badge> = emptyList(),
-    val recentDonations: List<DonationRecord> = emptyList()
-)
-
-data class Badge(val name: String, val emoji: String, val earned: Boolean)
-
-data class DonationRecord(
-    val type: NeedType,
-    val merenderoName: String,
-    val daysAgo: Int,
-    val delivered: Boolean
-)
-
+package com.tnt.donarya.domain.model
 // Sample data
 object SampleData {
 
     val needs1 = listOf(
         NeedItem(
             "n1",
+            merenderoId = "m1",
             "Alimentos secos",
             "Nos quedamos sin arroz, fideos y aceite para la merienda de hoy. Tenemos 34 chicos esperando. Cualquier cantidad ayuda.",
             NeedType.ALIMENTOS,
@@ -93,6 +16,7 @@ object SampleData {
         ),
         NeedItem(
             "n2",
+            merenderoId = "m2",
             "Ropa de abrigo",
             "Camperas, bufandas, guantes para los niños.",
             NeedType.ROPA,
@@ -103,6 +27,7 @@ object SampleData {
         ),
         NeedItem(
             "n3",
+            merenderoId = "m3",
             "Garrafa de gas",
             "1 garrafa de 10kg para la cocina.",
             NeedType.GAS,
@@ -127,7 +52,6 @@ object SampleData {
             true,
             1.2,
             14,
-            needs1,
             -42.7692,
             -65.0375
         ),
@@ -144,7 +68,6 @@ object SampleData {
             false,
             2.8,
             35,
-            emptyList(),
             -42.7800,
             -65.0500
         ),
@@ -161,7 +84,6 @@ object SampleData {
             false,
             4.1,
             52,
-            emptyList(),
             -42.7900,
             -65.0200
         )
