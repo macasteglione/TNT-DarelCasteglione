@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Badge
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tnt.donarya.domain.model.UrgencyLevel
+import com.tnt.donarya.domain.model.UserRole
 
 @Composable
 fun UrgencyBadge(urgency: UrgencyLevel, modifier: Modifier = Modifier) {
@@ -67,8 +69,10 @@ fun ItemChip(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun DonarYaBottomBar(
+    role: UserRole,
     currentRoute: String,
     onAlertas: () -> Unit,
+    onHome: () -> Unit,
     onDonar: () -> Unit,
     onPerfil: () -> Unit,
     alertCount: Int = 0
@@ -97,22 +101,41 @@ fun DonarYaBottomBar(
                 indicatorColor = Color(0xFFD8F3DC)
             )
         )
-        NavigationBarItem(
-            selected = currentRoute in listOf("merendero_list", "merendero_home"),
-            onClick = onDonar,
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Donar"
+        if (role == UserRole.MERENDERO) {
+            NavigationBarItem(
+                selected = currentRoute == "merendero_home",
+                onClick = onHome,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Inicio"
+                    )
+                },
+                label = { Text("Inicio") },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color(0xFF40916C),
+                    selectedTextColor = Color(0xFF40916C),
+                    indicatorColor = Color(0xFFD8F3DC)
                 )
-            },
-            label = { Text("Donar") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color(0xFF40916C),
-                selectedTextColor = Color(0xFF40916C),
-                indicatorColor = Color(0xFFD8F3DC)
             )
-        )
+        } else {
+            NavigationBarItem(
+                selected = currentRoute == "merendero_list",
+                onClick = onDonar,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Donar"
+                    )
+                },
+                label = { Text("Donar") },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color(0xFF40916C),
+                    selectedTextColor = Color(0xFF40916C),
+                    indicatorColor = Color(0xFFD8F3DC)
+                )
+            )
+        }
         NavigationBarItem(
             selected = currentRoute == "profile",
             onClick = onPerfil,

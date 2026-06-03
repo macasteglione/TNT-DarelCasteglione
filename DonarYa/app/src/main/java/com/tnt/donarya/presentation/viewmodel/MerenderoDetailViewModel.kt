@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class MerenderoDetailViewModel : ViewModel() {
-    private val merenderoRepository = MerenderoRepositoryImpl()
-    private val needRepository = NeedRepositoryImpl()
+    private val merenderoRepository = MerenderoRepositoryImpl
+    private val needRepository = NeedRepositoryImpl
     private val _uiState = MutableStateFlow<MerenderoDetailUiState>(MerenderoDetailUiState.Loading)
     val uiState: StateFlow<MerenderoDetailUiState> = _uiState
 

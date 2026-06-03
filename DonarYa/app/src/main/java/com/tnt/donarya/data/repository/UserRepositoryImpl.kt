@@ -2,52 +2,12 @@ package com.tnt.donarya.data.repository
 
 import android.content.Context
 import com.tnt.donarya.data.local.LocalStorage
-import com.tnt.donarya.domain.model.Badge
-import com.tnt.donarya.domain.model.DonationRecord
-import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.User
-import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.repository.UserRepository
 
 object UserRepositoryImpl : UserRepository {
 
-    private val users = mutableListOf(
-
-        User(
-            id = "u1",
-            nombre = "Julián Morales",
-            email = "julian@gmail.com",
-            password = "1234",
-            rol = UserRole.DONANTE,
-            donationsCount = 17,
-            mendecerosHelped = 8,
-            beneficiados = 142,
-            badges = listOf(
-                Badge("Estrella", "⭐", true),
-                Badge("Plantador", "🌱", true),
-                Badge("Fiel", "💙", true),
-                Badge("Trofeo", "🏆", false)
-            ),
-            recentDonations = listOf(
-                DonationRecord(NeedType.ALIMENTOS, "Los Girasoles", 3, true),
-                DonationRecord(NeedType.ROPA, "Esperanza", 5, true),
-                DonationRecord(NeedType.GAS, "San Cayetano", 12, true)
-            )
-        ),
-
-        User(
-            id = "u2",
-            nombre = "Marta González",
-            email = "marta@gmail.com",
-            password = "1234",
-            rol = UserRole.MERENDERO,
-            nombreComedor = "Los Girasoles",
-            direccion = "Av. San Martín 1240",
-            whatsapp = "+54 9 341 555-1234",
-            cantidadChicos = 34,
-            beneficiados = 34
-        )
-    )
+    private val users = mutableListOf<User>()
 
     private lateinit var storage: LocalStorage
 

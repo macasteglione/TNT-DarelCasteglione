@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,27 +46,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.domain.model.NeedItem
+import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.MerenderoHomeUiState
 import com.tnt.donarya.presentation.viewmodel.MerenderoHomeViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 import com.tnt.donarya.ui.components.UrgencyBadge
-import androidx.compose.runtime.getValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoHomeScreen(
     onAlertas: () -> Unit,
     onPublishNeed: () -> Unit,
-    onPerfil: () -> Unit
+    onPerfil: () -> Unit,
+    role: UserRole = UserRole.MERENDERO
 ) {
     val viewModel: MerenderoHomeViewModel = viewModel()
-
     val uiState by viewModel.uiState.collectAsState()
 
     when (uiState) {
-
         is MerenderoHomeUiState.Loading -> {
-
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -75,21 +74,24 @@ fun MerenderoHomeScreen(
         }
 
         is MerenderoHomeUiState.Success -> {
-
-            val state =
-                uiState as MerenderoHomeUiState.Success
-
+            val state = uiState as MerenderoHomeUiState.Success
             val merendero = state.merendero
-
             val needs = state.activeNeeds
+            val coveredNeeds = state.coveredNeeds
 
-
+            val initials = merendero.name
+                .split(" ")
+                .filter { it.isNotBlank() }
+                .take(2)
+                .joinToString("") { it.first().uppercase() }
 
             Scaffold(
                 bottomBar = {
                     DonarYaBottomBar(
+                        role = role,
                         currentRoute = "merendero_home",
                         onAlertas = onAlertas,
+                        onHome = {},
                         onDonar = {},
                         onPerfil = onPerfil,
                         alertCount = 1
@@ -103,7 +105,6 @@ fun MerenderoHomeScreen(
                         .padding(padding)
                 ) {
                     item {
-                        // Header
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -118,7 +119,7 @@ fun MerenderoHomeScreen(
                                 ) {
                                     Column {
                                         Text(
-                                            "Buenos días, Marta 👋",
+                                            "Buenos días, ${merendero.coordinator} 👋",
                                             color = Color.White.copy(alpha = 0.8f),
                                             fontSize = 14.sp
                                         )
@@ -138,7 +139,7 @@ fun MerenderoHomeScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            "MG",
+                                            initials,
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -165,7 +166,6 @@ fun MerenderoHomeScreen(
                     }
 
                     item {
-                        // Stats
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -173,11 +173,11 @@ fun MerenderoHomeScreen(
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            MerenderoStat("3", "Activas")
+                            MerenderoStat("${merendero.activeNeeds}", "Activas")
                             VerticalDivider()
-                            MerenderoStat("12", "Cubiertas")
+                            MerenderoStat("${merendero.coveredNeeds}", "Cubiertas")
                             VerticalDivider()
-                            MerenderoStat("34", "Chicos")
+                            MerenderoStat("${merendero.kidsCount}", "Chicos")
                         }
                     }
 
@@ -198,9 +198,7 @@ fun MerenderoHomeScreen(
                             Button(
                                 onClick = onPublishNeed,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xFF40916C
-                                    )
+                                    containerColor = Color(0xFF40916C)
                                 ),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 modifier = Modifier.height(36.dp)
@@ -223,60 +221,57 @@ fun MerenderoHomeScreen(
                         )
                     }
 
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Cubiertas recientemente",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                color = Color(0xFF111827)
-                            )
-                            TextButton(onClick = {}) {
-                                Text("Ver todas", color = Color(0xFF40916C), fontSize = 13.sp)
-                            }
-                        }
-                    }
-
-                    items(
-                        listOf(
-                            "Frazadas y mantas" to "Cubierta",
-                            "Harina 0000 (5kg)" to "Cubierta"
-                        )
-                    ) { (item, status) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(item, fontSize = 14.sp, color = Color(0xFF374151))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = Color(0xFF40916C),
-                                    modifier = Modifier.size(16.dp)
-                                )
+                    if (coveredNeeds.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    " $status",
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF40916C),
-                                    fontWeight = FontWeight.Medium
+                                    "Cubiertas recientemente",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF111827)
                                 )
+                                TextButton(onClick = {}) {
+                                    Text("Ver todas", color = Color(0xFF40916C), fontSize = 13.sp)
+                                }
                             }
                         }
-                        Divider(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            color = Color(0xFFF3F4F6)
-                        )
+
+                        items(coveredNeeds) { need ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(need.title, fontSize = 14.sp, color = Color(0xFF374151))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF40916C),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        " Cubierta",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF40916C),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            Divider(
+                                modifier = Modifier.padding(horizontal = 20.dp),
+                                color = Color(0xFFF3F4F6)
+                            )
+                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -286,102 +281,98 @@ fun MerenderoHomeScreen(
     }
 }
 
-        @Composable
-        fun RowScope.MerenderoStat(value: String, label: String) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
-            }
-        }
+@Composable
+fun RowScope.MerenderoStat(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+    }
+}
 
-            @Composable
+@Composable
+fun VerticalDivider() {
+    Divider(
+        modifier = Modifier
+            .width(1.dp)
+            .height(36.dp), color = Color.White.copy(alpha = 0.2f)
+    )
+}
 
-        fun VerticalDivider() {
-            Divider(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(36.dp), color = Color.White.copy(alpha = 0.2f)
-            )
-        }
-
-            @Composable
-
-        fun NeedManageCard(need: NeedItem, modifier: Modifier = Modifier) {
-            Card(
-                modifier = modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+@Composable
+fun NeedManageCard(need: NeedItem, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            UrgencyBadge(need.urgency)
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                need.type.label,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = Color(0xFF111827)
-                            )
-                            Text(
-                                need.items.joinToString(", ") + " · ${need.publishedMinutesAgo} min",
-                                fontSize = 12.sp,
-                                color = Color(0xFF6B7280),
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
-                        Text(
-                            "hace ${if (need.publishedMinutesAgo < 60) "${need.publishedMinutesAgo} min" else "${need.publishedMinutesAgo / 60} h"}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF9CA3AF)
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    UrgencyBadge(need.urgency)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        need.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF111827)
+                    )
+                    Text(
+                        need.items.joinToString(", ") + " · ${need.publishedMinutesAgo} min",
+                        fontSize = 12.sp,
+                        color = Color(0xFF6B7280),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Text(
+                    "hace ${if (need.publishedMinutesAgo < 60) "${need.publishedMinutesAgo} min" else "${need.publishedMinutesAgo / 60} h"}",
+                    fontSize = 11.sp,
+                    color = Color(0xFF9CA3AF)
+                )
+            }
 
-                    if (need.donorsOnWay > 0) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.DirectionsWalk,
-                                contentDescription = null,
-                                tint = Color(0xFF40916C),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                " ${need.donorsOnWay} donantes en camino",
-                                fontSize = 12.sp,
-                                color = Color(0xFF40916C),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Sin respuestas aún", fontSize = 12.sp, color = Color(0xFF9CA3AF))
-                    }
+            if (need.donorsOnWay > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.DirectionsWalk,
+                        contentDescription = null,
+                        tint = Color(0xFF40916C),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        " ${need.donorsOnWay} donantes en camino",
+                        fontSize = 12.sp,
+                        color = Color(0xFF40916C),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Sin respuestas aún", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedButton(
-                            onClick = {},
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(
-                                    0xFF40916C
-                                )
-                            ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Text("Editar", fontSize = 13.sp)
-                        }
-                    }
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedButton(
+                    onClick = {},
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF40916C)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("Editar", fontSize = 13.sp)
                 }
             }
         }
+    }
+}

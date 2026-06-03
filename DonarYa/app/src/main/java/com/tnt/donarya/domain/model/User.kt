@@ -11,6 +11,7 @@ data class User(
     val direccion: String? = null,
     val whatsapp: String? = null,
     val cantidadChicos: Int? = null,
+    val merenderoId: String? = null,
     // Campos impacto donante
     val donationsCount: Int = 0,
     val mendecerosHelped: Int = 0,

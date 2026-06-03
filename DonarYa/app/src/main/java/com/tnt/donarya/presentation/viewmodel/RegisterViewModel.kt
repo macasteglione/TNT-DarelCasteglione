@@ -3,6 +3,7 @@ package com.tnt.donarya.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.usecase.RegisterUseCase
@@ -10,7 +11,7 @@ import com.tnt.donarya.presentation.state.RegisterUiState
 
 class RegisterViewModel : ViewModel() {
 
-    private val registerUseCase = RegisterUseCase(UserRepositoryImpl)
+    private val registerUseCase = RegisterUseCase(UserRepositoryImpl, MerenderoRepositoryImpl)
 
     private val _uiState = MutableStateFlow<RegisterUiState>(
         RegisterUiState.Idle

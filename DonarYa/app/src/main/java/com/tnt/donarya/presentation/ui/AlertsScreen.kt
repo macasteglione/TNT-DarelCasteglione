@@ -59,8 +59,10 @@ import com.tnt.donarya.presentation.viewmodel.AlertsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertsScreen(
+    onHome: () -> Unit,
     onDonar: () -> Unit,
-    onPerfil: () -> Unit
+    onPerfil: () -> Unit,
+    role: com.tnt.donarya.domain.model.UserRole = com.tnt.donarya.domain.model.UserRole.DONANTE
 ) {
     val viewModel: AlertsViewModel = viewModel()
 
@@ -160,8 +162,10 @@ fun AlertsScreen(
                 },
                 bottomBar = {
                     DonarYaBottomBar(
+                        role = role,
                         currentRoute = "alerts",
                         onAlertas = {},
+                        onHome = onHome,
                         onDonar = onDonar,
                         onPerfil = onPerfil,
                         alertCount = unreadCount

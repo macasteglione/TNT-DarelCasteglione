@@ -10,11 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MerenderoListViewModel : ViewModel() {
 
-    private val merenderoRepository =
-        MerenderoRepositoryImpl()
-
-    private val needRepository =
-        NeedRepositoryImpl()
+    private val merenderoRepository = MerenderoRepositoryImpl
+    private val needRepository = NeedRepositoryImpl
 
     private val _uiState =
         MutableStateFlow<MerenderoListUiState>(
