@@ -1,22 +1,51 @@
 package com.tnt.donarya.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
+import androidx.lifecycle.viewModelScope
+import com.tnt.donarya.data.remote.AddressRepository
 import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.AddressSuggestion
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.usecase.RegisterUseCase
 import com.tnt.donarya.presentation.state.RegisterUiState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class RegisterViewModel : ViewModel() {
 
-    private val registerUseCase = RegisterUseCase(UserRepositoryImpl, MerenderoRepositoryImpl)
+    private val registerUseCase = RegisterUseCase(UserRepositoryImpl)
 
-    private val _uiState = MutableStateFlow<RegisterUiState>(
-        RegisterUiState.Idle
-    )
+    private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
     val uiState: StateFlow<RegisterUiState> = _uiState
+
+    private val _addressSuggestions = MutableStateFlow<List<AddressSuggestion>>(emptyList())
+    val addressSuggestions: StateFlow<List<AddressSuggestion>> = _addressSuggestions
+
+    private var selectedLat = 0.0
+    private var selectedLng = 0.0
+    private var addressSearchJob: Job? = null
+
+    fun searchAddress(query: String) {
+        addressSearchJob?.cancel()
+        addressSearchJob = viewModelScope.launch {
+            delay(500)
+            val results = AddressRepository.search(query)
+            _addressSuggestions.value = results
+        }
+    }
+
+    fun selectAddress(suggestion: AddressSuggestion) {
+        selectedLat = suggestion.lat
+        selectedLng = suggestion.lon
+        _addressSuggestions.value = emptyList()
+    }
+
+    fun clearAddressSuggestions() {
+        _addressSuggestions.value = emptyList()
+    }
 
     fun registrar(
         nombre: String,
@@ -24,11 +53,16 @@ class RegisterViewModel : ViewModel() {
         password: String,
         rol: UserRole,
         nombreComedor: String? = null,
-        whatsapp: String? = null
+        whatsapp: String? = null,
+        direccion: String? = null
     ) {
         _uiState.value = RegisterUiState.Loading
 
-        val result = registerUseCase(nombre, email, password, rol, nombreComedor, whatsapp)
+        val result = registerUseCase(
+            nombre, email, password, rol,
+            nombreComedor, whatsapp, direccion,
+            selectedLat, selectedLng
+        )
 
         _uiState.value = if (result.isSuccess)
             RegisterUiState.Success(result.getOrThrow())

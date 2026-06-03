@@ -52,7 +52,6 @@ import com.tnt.donarya.ui.components.DonarYaBottomBar
 @Composable
 fun ProfileScreen(
     role: String,
-    onAlertas: () -> Unit,
     onHome: () -> Unit,
     onDonar: () -> Unit,
     onLogout: () -> Unit,
@@ -78,7 +77,6 @@ fun ProfileScreen(
             DonarYaBottomBar(
                 role = roleEnum,
                 currentRoute = "profile",
-                onAlertas = onAlertas,
                 onHome = onHome,
                 onDonar = onDonar,
                 onPerfil = {}

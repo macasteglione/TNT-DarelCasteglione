@@ -89,59 +89,6 @@ object SampleData {
         )
     )
 
-    val alerts = listOf(
-        AlertItem(
-            "a1",
-            "Necesidad urgente cerca",
-            "Los Girasoles necesita alimentos secos · 1,3 km",
-            AlertType.URGENTE,
-            2,
-            false,
-            true
-        ),
-        AlertItem(
-            "a2",
-            "Alguien va para allá",
-            "Julián M. confirmó que lleva arroz y aceite · ETA 18 min",
-            AlertType.RESPUESTA,
-            6,
-            false
-        ),
-        AlertItem(
-            "a3",
-            "Nueva urgencia: Gas",
-            "Comedor San Cayetano necesita garrafa · 2,8 km de vos",
-            AlertType.URGENTE,
-            15,
-            false,
-            true
-        ),
-        AlertItem(
-            "a4",
-            "Necesidad cubierta",
-            "Tu donación de ropa a Merendero Esperanza fue confirmada",
-            AlertType.CUBIERTA,
-            240,
-            true
-        ),
-        AlertItem(
-            "a5",
-            "¡Gracias de Marta!",
-            "Merendero Los Girasoles te agradeció por tu donación",
-            AlertType.AGRADECIMIENTO,
-            720,
-            true
-        ),
-        AlertItem(
-            "a6",
-            "Recordatorio de donación",
-            "Confirmaste llevar frazadas al Comedor Norte · ¿pudiste ir?",
-            AlertType.RECORDATORIO,
-            1440,
-            true
-        )
-    )
-
     val donante = UserProfile(
         name = "Julián Morales",
         role = UserRole.DONANTE,

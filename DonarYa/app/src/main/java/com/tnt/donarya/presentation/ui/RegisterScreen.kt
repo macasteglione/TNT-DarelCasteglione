@@ -2,6 +2,7 @@ package com.tnt.donarya.presentation.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,8 @@ fun RegisterScreen(
     // Campos extra merendero
     var nombreComedor by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
+    val suggestions by viewModel.addressSuggestions.collectAsState()
 
     LaunchedEffect(uiState) {
         if (uiState is RegisterUiState.Success) {
@@ -212,7 +215,7 @@ fun RegisterScreen(
                             OutlinedTextField(
                                 value = nombreComedor,
                                 onValueChange = { nombreComedor = it },
-                                label = { Text("Nombre del comedor", color = Color.White.copy(alpha = 0.7f)) },
+                                label = { Text("Nombre del comedor *", color = Color.White.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = fieldColors(),
@@ -224,13 +227,47 @@ fun RegisterScreen(
                             OutlinedTextField(
                                 value = whatsapp,
                                 onValueChange = { whatsapp = it },
-                                label = { Text("WhatsApp (opcional)", color = Color.White.copy(alpha = 0.7f)) },
+                                label = { Text("WhatsApp *", color = Color.White.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 colors = fieldColors(),
                                 shape = RoundedCornerShape(12.dp)
                             )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Column {
+                                OutlinedTextField(
+                                    value = direccion,
+                                    onValueChange = {
+                                        direccion = it
+                                        viewModel.searchAddress(it)
+                                    },
+                                    label = { Text("Dirección", color = Color.White.copy(alpha = 0.7f)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    colors = fieldColors(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                suggestions.forEach { suggestion ->
+                                    Text(
+                                        text = suggestion.displayName,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                direccion = suggestion.displayName
+                                                viewModel.selectAddress(suggestion)
+                                            }
+                                            .background(Color.White.copy(alpha = 0.08f))
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -259,7 +296,8 @@ fun RegisterScreen(
                         password = password,
                         rol = selectedRole ?: UserRole.DONANTE,
                         nombreComedor = nombreComedor.ifBlank { null },
-                        whatsapp = whatsapp.ifBlank { null }
+                        whatsapp = whatsapp.ifBlank { null },
+                        direccion = direccion.ifBlank { null }
                     )
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -274,15 +312,6 @@ fun RegisterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextButton(onClick = onBack) {
-                Text(
-                    "¿Ya tenés cuenta? Iniciá sesión",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp
-                )
-            }
         }
     }
 }
