@@ -41,9 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
+import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.DonationRecord
 import com.tnt.donarya.domain.model.NeedType
-import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 
@@ -52,11 +53,16 @@ import com.tnt.donarya.ui.components.DonarYaBottomBar
 fun ProfileScreen(
     role: String,
     onAlertas: () -> Unit,
+    onHome: () -> Unit,
     onDonar: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    roleEnum: UserRole = UserRole.DONANTE
 ) {
 
     val user = UserRepositoryImpl.getCurrentUser()
+    val merendero = user?.merenderoId?.let {
+        MerenderoRepositoryImpl.getById(it)
+    }
     remember { mutableStateOf(false) }
 
     // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
@@ -70,8 +76,10 @@ fun ProfileScreen(
     Scaffold(
         bottomBar = {
             DonarYaBottomBar(
+                role = roleEnum,
                 currentRoute = "profile",
                 onAlertas = onAlertas,
+                onHome = onHome,
                 onDonar = onDonar,
                 onPerfil = {}
             )
@@ -168,22 +176,22 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            if (user?.rol?.name == "merendero") {
+                            if (user?.rol == UserRole.MERENDERO) {
 
                                 ImpactStat(
-                                    "${user?.cantidadChicos ?: 0}",
+                                    "${merendero?.kidsCount ?: user?.cantidadChicos ?: 0}",
                                     "chicos\natendidos",
                                     null
                                 )
 
                                 ImpactStat(
-                                    "3",
+                                    "${merendero?.activeNeeds ?: 0}",
                                     "necesidades\nactivas",
                                     "+1 hoy"
                                 )
 
                                 ImpactStat(
-                                    "12",
+                                    "${merendero?.coveredNeeds ?: 0}",
                                     "donaciones\nrecibidas",
                                     null
                                 )

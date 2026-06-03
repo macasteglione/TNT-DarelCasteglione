@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.domain.model.Merendero
+import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.model.UrgencyLevel
 import com.tnt.donarya.presentation.viewmodel.MerenderoListViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
@@ -54,7 +54,8 @@ import com.tnt.donarya.presentation.state.MerenderoListUiState
 fun MerenderoListScreen(
     onMerenderoClick: (String) -> Unit,
     onAlertas: () -> Unit,
-    onPerfil: () -> Unit
+    onPerfil: () -> Unit,
+    role: UserRole = UserRole.DONANTE
 ) {
 
     val viewModel: MerenderoListViewModel = viewModel()
@@ -73,8 +74,10 @@ fun MerenderoListScreen(
     Scaffold(
         bottomBar = {
             DonarYaBottomBar(
+                role = role,
                 currentRoute = "merendero_list",
                 onAlertas = onAlertas,
+                onHome = {},
                 onDonar = {},
                 onPerfil = onPerfil,
                 alertCount = 3
@@ -140,16 +143,9 @@ fun MerenderoListScreen(
                         .fillMaxWidth()
                         .background(Color(0xFF1B4332))
                         .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    StatCard("3", "Activos", modifier = Modifier.weight(1f))
-                    Divider(
-                        modifier = Modifier
-                            .height(36.dp)
-                            .width(1.dp),
-                        color = Color.White.copy(alpha = 0.2f)
-                    )
-                    StatCard("34", "Chicos", modifier = Modifier.weight(1f))
+                    StatCard("3", "Activos")
                 }
             }
 

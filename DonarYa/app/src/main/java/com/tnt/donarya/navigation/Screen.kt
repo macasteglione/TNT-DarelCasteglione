@@ -19,5 +19,7 @@ sealed class Screen(val route: String) {
         fun createRoute(id: String) = "need_detail/$id"
     }
 
-    object Register : Screen("register")
+    object Register : Screen("register/{rolInicial}") {
+        fun createRoute(rol: String) = "register/$rol"
+    }
 }

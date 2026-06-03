@@ -58,13 +58,13 @@ import com.tnt.donarya.domain.model.UrgencyLevel
 @Composable
 fun PublishNeedScreen(
     onBack: () -> Unit,
-    onPublish: () -> Unit
+    onPublish: (type: NeedType, urgency: UrgencyLevel, description: String, items: List<String>, whatsapp: String) -> Unit
 ) {
-    var selectedType by remember { mutableStateOf<NeedType?>(NeedType.ALIMENTOS) }
-    var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(UrgencyLevel.URGENTE) }
-    var description by remember { mutableStateOf("Nos quedamos sin arroz, fideos y aceite para la merienda de hoy. Tenemos 34 chicos esperando. Cualquier cantidad ayuda.") }
-    var items by remember { mutableStateOf(listOf("Arroz", "Fideos", "Aceite")) }
-    var whatsapp by remember { mutableStateOf("+54 9 341 555-1234") }
+    var selectedType by remember { mutableStateOf<NeedType?>(null) }
+    var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(null) }
+    var description by remember { mutableStateOf("") }
+    var items by remember { mutableStateOf(emptyList<String>()) }
+    var whatsapp by remember { mutableStateOf("") }
     var newItem by remember { mutableStateOf("") }
 
     Scaffold(
@@ -89,7 +89,11 @@ fun PublishNeedScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onPublish) {
+                    TextButton(onClick = {
+                        val type = selectedType ?: return@TextButton
+                        val urgency = selectedUrgency ?: return@TextButton
+                        onPublish(type, urgency, description, items, whatsapp)
+                    }) {
                         Text("Guardar", color = Color(0xFF40916C), fontWeight = FontWeight.SemiBold)
                     }
                 },
@@ -288,12 +292,17 @@ fun PublishNeedScreen(
 
             // Publish button
             Button(
-                onClick = onPublish,
+                onClick = {
+                    val type = selectedType ?: return@Button
+                    val urgency = selectedUrgency ?: return@Button
+                    onPublish(type, urgency, description, items, whatsapp)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C)),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                enabled = selectedType != null && selectedUrgency != null && description.isNotBlank()
             ) {
                 Text("Publicar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }

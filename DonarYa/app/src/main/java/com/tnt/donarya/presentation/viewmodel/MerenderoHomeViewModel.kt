@@ -5,13 +5,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.NeedRepositoryImpl
+import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.usecase.MarkNeedCoveredUseCase
 import com.tnt.donarya.presentation.state.MerenderoHomeUiState
 
 class MerenderoHomeViewModel : ViewModel() {
 
-    private val merenderoRepository = MerenderoRepositoryImpl()
-    private val needRepository = NeedRepositoryImpl()
+    private val merenderoRepository = MerenderoRepositoryImpl
+    private val needRepository = NeedRepositoryImpl
     private val markNeedCoveredUseCase = MarkNeedCoveredUseCase(needRepository)
 
     private val _uiState = MutableStateFlow<MerenderoHomeUiState>(
@@ -22,41 +23,32 @@ class MerenderoHomeViewModel : ViewModel() {
     init { cargar() }
 
     private fun cargar() {
-        val merendero = merenderoRepository.getAll().first()
-        actualizarEstado(merendero.id)
+        val currentUser = UserRepositoryImpl.getCurrentUser()
+        val merenderoId = currentUser?.merenderoId
+        if (merenderoId != null) {
+            actualizarEstado(merenderoId)
+        } else {
+            _uiState.value = MerenderoHomeUiState.Loading
+        }
     }
 
     fun marcarComoCubierta(needId: String) {
         val result = markNeedCoveredUseCase(needId)
         if (result.isSuccess) {
-            // recargamos para reflejar el cambio
-            val merendero = merenderoRepository.getAll().first()
-            actualizarEstado(merendero.id)
+            val currentUser = UserRepositoryImpl.getCurrentUser()
+            val merenderoId = currentUser?.merenderoId ?: return
+            actualizarEstado(merenderoId)
         }
     }
 
-    private fun actualizarEstado(
-        merenderoId: String
-    ) {
+    private fun actualizarEstado(merenderoId: String) {
+        val merendero = merenderoRepository.getById(merenderoId) ?: return
+        val needs = needRepository.getByMerendero(merenderoId)
 
-        val merendero =
-            merenderoRepository.getById(merenderoId)
-                ?: return
-
-        val needs =
-            needRepository.getByMerendero(
-                merenderoId
-            )
-
-        _uiState.value =
-            MerenderoHomeUiState.Success(
-                merendero = merendero,
-                activeNeeds = needs.filter {
-                    !it.isCovered
-                },
-                coveredNeeds = needs.filter {
-                    it.isCovered
-                }
-            )
+        _uiState.value = MerenderoHomeUiState.Success(
+            merendero = merendero,
+            activeNeeds = needs.filter { !it.isCovered },
+            coveredNeeds = needs.filter { it.isCovered }
+        )
     }
 }

@@ -132,9 +132,13 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Button(
-                onClick = (
-                    onLogin
-                    ),
+                onClick = {
+                    when (selectedRole) {
+                        UserRole.MERENDERO -> onMerenderoSelected()
+                        UserRole.DONANTE -> onDonanteSelected()
+                        null -> onLogin()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
