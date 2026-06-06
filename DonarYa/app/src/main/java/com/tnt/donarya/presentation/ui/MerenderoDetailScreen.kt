@@ -175,7 +175,7 @@ fun MerenderoDetailScreen(
                             )
                             InfoRow(
                                 icon = Icons.Default.Person,
-                                text = "${merendero.coordinator} · Coordinadora"
+                                text = "${merendero.coordinator} · Coordinador"
                             )
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -212,8 +212,8 @@ fun MerenderoDetailScreen(
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0xFFE8F5E9))
                                     .clickable {
-                                        val uri =
-                                            "google.navigation:q=${merendero.latitude},${merendero.longitude}".toUri()
+                                        val address = "${merendero.address}, ${merendero.neighborhood}"
+                                        val uri = "geo:0,0?q=${Uri.encode(address)}".toUri()
                                         val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                             setPackage("com.google.android.apps.maps")
                                         }
@@ -271,7 +271,7 @@ fun MerenderoDetailScreen(
                                 Column {
                                     Text("Contactar por WhatsApp", fontWeight = FontWeight.Medium)
                                     Text(
-                                        merendero.whatsapp + " · Marta",
+                                        merendero.whatsapp,
                                         fontSize = 12.sp,
                                         color = Color(0xFF6B7280)
                                     )

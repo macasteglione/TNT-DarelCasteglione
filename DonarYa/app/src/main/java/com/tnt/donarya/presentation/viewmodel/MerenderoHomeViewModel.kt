@@ -22,6 +22,8 @@ class MerenderoHomeViewModel : ViewModel() {
 
     init { cargar() }
 
+    fun refresh() { cargar() }
+
     private fun cargar() {
         val currentUser = UserRepositoryImpl.getCurrentUser()
         val merenderoId = currentUser?.merenderoId

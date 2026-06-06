@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -104,6 +108,13 @@ fun LoginScreen(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Correo electrónico", color = Color.White.copy(alpha = 0.7f)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
@@ -124,17 +135,25 @@ fun LoginScreen(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Contraseña", color = Color.White.copy(alpha = 0.7f)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
-                            TextButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Text(
-                                    if (passwordVisible) "Ocultar" else "Ver",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 12.sp
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff
+                                    else Icons.Default.Visibility,
+                                    contentDescription = if (passwordVisible) "Ocultar" else "Ver",
+                                    tint = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         },

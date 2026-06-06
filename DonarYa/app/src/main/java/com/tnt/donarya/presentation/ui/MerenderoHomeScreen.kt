@@ -44,6 +44,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.domain.model.UserRole
@@ -55,13 +58,19 @@ import com.tnt.donarya.ui.components.UrgencyBadge
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoHomeScreen(
-    onAlertas: () -> Unit,
     onPublishNeed: () -> Unit,
     onPerfil: () -> Unit,
     role: UserRole = UserRole.MERENDERO
 ) {
     val viewModel: MerenderoHomeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    androidx.compose.runtime.LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh()
+        }
+    }
 
     when (uiState) {
         is MerenderoHomeUiState.Loading -> {
@@ -90,11 +99,9 @@ fun MerenderoHomeScreen(
                     DonarYaBottomBar(
                         role = role,
                         currentRoute = "merendero_home",
-                        onAlertas = onAlertas,
                         onHome = {},
                         onDonar = {},
-                        onPerfil = onPerfil,
-                        alertCount = 1
+                        onPerfil = onPerfil
                     )
                 },
                 containerColor = Color(0xFFF9FAFB)

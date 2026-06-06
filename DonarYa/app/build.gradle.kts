@@ -64,4 +64,10 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     implementation(libs.gson)
+
+    // Ktor client
+    implementation("io.ktor:ktor-client-core:3.1.2")
+    implementation("io.ktor:ktor-client-okhttp:3.1.2")
+    implementation("io.ktor:ktor-client-content-negotiation:3.1.2")
+    implementation("io.ktor:ktor-serialization-gson:3.1.2")
 }

@@ -30,7 +30,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -58,30 +57,21 @@ import com.tnt.donarya.domain.model.UrgencyLevel
 @Composable
 fun PublishNeedScreen(
     onBack: () -> Unit,
-    onPublish: (type: NeedType, urgency: UrgencyLevel, description: String, items: List<String>, whatsapp: String) -> Unit
+    onPublish: (type: NeedType, urgency: UrgencyLevel, description: String, items: List<String>, whatsapp: String) -> Unit,
+    initialWhatsapp: String = ""
 ) {
     var selectedType by remember { mutableStateOf<NeedType?>(null) }
     var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(null) }
     var description by remember { mutableStateOf("") }
     var items by remember { mutableStateOf(emptyList<String>()) }
-    var whatsapp by remember { mutableStateOf("") }
+    var whatsapp by remember { mutableStateOf(initialWhatsapp) }
     var newItem by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        LinearProgressIndicator(
-                            progress = { 0.67f },
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF40916C),
-                            trackColor = Color(0xFFE5E7EB)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Paso 2 de 3", fontSize = 11.sp, color = Color(0xFF6B7280))
-                        Text("Detalle de la necesidad", fontSize = 12.sp, color = Color(0xFF374151))
-                    }
+                    Text("Detalle de la necesidad", fontSize = 16.sp, color = Color(0xFF374151))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

@@ -53,7 +53,6 @@ import com.tnt.donarya.presentation.state.MerenderoListUiState
 @Composable
 fun MerenderoListScreen(
     onMerenderoClick: (String) -> Unit,
-    onAlertas: () -> Unit,
     onPerfil: () -> Unit,
     role: UserRole = UserRole.DONANTE
 ) {
@@ -76,11 +75,9 @@ fun MerenderoListScreen(
             DonarYaBottomBar(
                 role = role,
                 currentRoute = "merendero_list",
-                onAlertas = onAlertas,
                 onHome = {},
                 onDonar = {},
-                onPerfil = onPerfil,
-                alertCount = 3
+                onPerfil = onPerfil
             )
         },
         containerColor = Color(0xFFF9FAFB)
