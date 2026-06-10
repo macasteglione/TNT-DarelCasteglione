@@ -47,6 +47,11 @@ import com.tnt.donarya.domain.model.DonationRecord
 import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.ui.components.DonarYaBottomBar
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +63,10 @@ fun ProfileScreen(
     roleEnum: UserRole = UserRole.DONANTE
 ) {
 
-    val user = UserRepositoryImpl.getCurrentUser()
-    val merendero = user?.merenderoId?.let {
-        MerenderoRepositoryImpl.getById(it)
-    }
-    remember { mutableStateOf(false) }
+    val viewModel: ProfileViewModel = viewModel()
+    val profileData by viewModel.profileData.collectAsState()
+    val user      = profileData.user
+    val merendero = profileData.merendero
 
     // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
     val initials = user?.nombre

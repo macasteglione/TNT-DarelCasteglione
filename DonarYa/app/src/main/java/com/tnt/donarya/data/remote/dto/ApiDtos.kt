@@ -85,3 +85,16 @@ data class UpdateMerenderoRequestDto(
     val latitude: Double? = null,
     val longitude: Double? = null
 )
+
+data class ConfirmNeedResponseDto(
+    val ok: Boolean,
+    val donorsOnWay: Int
+)
+
+data class UpdateNeedRequestDto(
+    val title: String,
+    val description: String,
+    val type: String,
+    val urgency: String,
+    val items: List<String>
+)

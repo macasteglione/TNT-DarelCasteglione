@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
 object MerenderoRepositoryImpl : MerenderoRepository {
 
     private val merenderos = mutableListOf<Merendero>()
-    private var fetched = false
+    internal var fetched = false
 
     private suspend fun ensureFetched() {
         if (!fetched) {
@@ -23,17 +23,17 @@ object MerenderoRepositoryImpl : MerenderoRepository {
         }
     }
 
-    override fun getAll(): List<Merendero> = runBlocking(Dispatchers.IO) {
+    override suspend fun getAll(): List<Merendero> = runBlocking(Dispatchers.IO) {
         ensureFetched()
         merenderos.toList()
     }
 
-    override fun getById(id: String): Merendero? = runBlocking(Dispatchers.IO) {
+    override suspend fun getById(id: String): Merendero? = runBlocking(Dispatchers.IO) {
         ensureFetched()
         merenderos.find { it.id == id }
     }
 
-    override fun add(merendero: Merendero): Merendero = runBlocking(Dispatchers.IO) {
+    override suspend fun add(merendero: Merendero): Merendero = runBlocking(Dispatchers.IO) {
         val index = merenderos.indexOfFirst { it.id == merendero.id }
         if (index != -1) {
             merenderos[index] = merendero
@@ -56,7 +56,13 @@ object MerenderoRepositoryImpl : MerenderoRepository {
     suspend fun updateMerendero(id: String, req: UpdateMerenderoRequestDto) {
         ApiClient.updateMerendero(id, req)
     }
+
+    fun invalidateCache() {
+        fetched = false
+    }
 }
+
+
 
 private fun com.tnt.donarya.data.remote.dto.MerenderoDto.toDomain() = Merendero(
     id = id,

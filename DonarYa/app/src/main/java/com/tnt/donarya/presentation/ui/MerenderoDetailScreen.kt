@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,17 +54,23 @@ import com.tnt.donarya.presentation.state.MerenderoDetailUiState
 import com.tnt.donarya.ui.components.ItemChip
 import com.tnt.donarya.ui.components.UrgencyBadge
 import androidx.core.net.toUri
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoDetailScreen(
-    merenderoId: String,
+    needId: String,
     onBack: () -> Unit,
     onVoyParaAllá: () -> Unit
 ) {
     val viewModel: MerenderoDetailViewModel = viewModel()
 
-    viewModel.loadMerendero(merenderoId)
+    val confirmState by viewModel.confirmState.collectAsState()
+
+    //viewModel.loadMerendero(merenderoId)
+    LaunchedEffect(needId) {
+        viewModel.loadNeed(needId)
+    }
 
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -97,6 +104,10 @@ fun MerenderoDetailScreen(
             val merendero = state.data.merendero
 
             val need = state.data.needs.firstOrNull() ?: return
+
+            val needId = state.data.needs
+                .firstOrNull { !it.isCovered }
+                ?.id
 
             Scaffold(
                 containerColor = Color(0xFFF9FAFB)
@@ -282,21 +293,44 @@ fun MerenderoDetailScreen(
 
                             // CTA
                             Button(
-                                onClick = onVoyParaAllá,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
+                                onClick = {
+                                    if (needId != null) {
+                                        viewModel.confirmarDonacion(needId)
+                                    }
+                                },
+                                enabled = confirmState !is MerenderoDetailViewModel.ConfirmState.Loading
+                                        && confirmState !is MerenderoDetailViewModel.ConfirmState.Success,
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xFF1B4332
-                                    )
+                                    containerColor = when (confirmState) {
+                                        is MerenderoDetailViewModel.ConfirmState.Success -> Color(0xFF22C55E)
+                                        else -> Color(0xFF1B4332)
+                                    }
                                 ),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
+                                when (confirmState) {
+                                    is MerenderoDetailViewModel.ConfirmState.Loading ->
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    is MerenderoDetailViewModel.ConfirmState.Success ->
+                                        Text("✓ ¡Avisaste que vas!", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    is MerenderoDetailViewModel.ConfirmState.Error ->
+                                        Text("Error — intentá de nuevo", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    else ->
+                                        Text("Voy para allá", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+                            }
+
+                            // Mostrar error como texto si falló
+                            if (confirmState is MerenderoDetailViewModel.ConfirmState.Error) {
                                 Text(
-                                    "Voy para allá",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                    (confirmState as MerenderoDetailViewModel.ConfirmState.Error).message,
+                                    color = Color(0xFFE63946),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
                         }

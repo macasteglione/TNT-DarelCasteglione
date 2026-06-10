@@ -10,9 +10,12 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.gson.*
-
+import com.tnt.donarya.BuildConfig
 object ApiClient {
-    private const val BASE_URL = "http://10.0.2.2:8080/api" // Android emulator → host
+    private val BASE_URL = if (BuildConfig.DEBUG)
+        "http://192.168.0.10:8080/api"   // teléfono físico
+    else
+        "http://10.0.2.2:8080/api"        // emulador
 
     private val gson = Gson()
 
@@ -21,6 +24,11 @@ object ApiClient {
     private val client = HttpClient(OkHttp) {
         install(ContentNegotiation) {
             gson(contentType = ContentType.Application.Json)
+        }
+        install(io.ktor.client.plugins.HttpTimeout) {
+            requestTimeoutMillis = 15000   // 15 segundos
+            connectTimeoutMillis = 10000   // 10 segundos
+            socketTimeoutMillis  = 15000   // 15 segundos
         }
     }
 
@@ -96,6 +104,42 @@ object ApiClient {
     suspend fun markNeedCovered(needId: String): Result<Unit> = runCatching {
         val response = client.put("$BASE_URL/needs/$needId/cover") {
             withAuth()
+        }
+        response.ensureSuccess()
+    }
+
+    suspend fun confirmNeed(needId: String): Result<ConfirmNeedResponseDto> = runCatching {
+        val response = client.post("$BASE_URL/needs/$needId/confirm") {
+            withAuth()
+        }
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), ConfirmNeedResponseDto::class.java)
+    }
+
+    suspend fun checkIfConfirmed(needId: String): Boolean = runCatching {
+        val response = client.get("$BASE_URL/needs/$needId/confirmed") {
+            withAuth()
+        }
+        val json = response.bodyAsText()
+        gson.fromJson(json, Map::class.java)["confirmed"] as? Boolean ?: false
+    }.getOrDefault(false)
+
+
+    suspend fun deleteNeed(needId: String): Result<Unit> = runCatching {
+        val response = client.delete("$BASE_URL/needs/$needId") {
+            withAuth()
+        }
+        response.ensureSuccess()
+    }
+
+    suspend fun updateNeed(
+        needId: String,
+        req: UpdateNeedRequestDto
+    ): Result<Unit> = runCatching {
+        val response = client.put("$BASE_URL/needs/$needId") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(gson.toJson(req))
         }
         response.ensureSuccess()
     }

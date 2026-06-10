@@ -8,6 +8,7 @@ import com.tnt.donarya.domain.model.AddressSuggestion
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.usecase.RegisterUseCase
 import com.tnt.donarya.presentation.state.RegisterUiState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,18 +57,20 @@ class RegisterViewModel : ViewModel() {
         whatsapp: String? = null,
         direccion: String? = null
     ) {
-        _uiState.value = RegisterUiState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = RegisterUiState.Loading
 
-        val result = registerUseCase(
-            nombre, email, password, rol,
-            nombreComedor, whatsapp, direccion,
-            selectedLat, selectedLng
-        )
+            val result = registerUseCase(
+                nombre, email, password, rol,
+                nombreComedor, whatsapp, direccion,
+                selectedLat, selectedLng
+            )
 
-        _uiState.value = if (result.isSuccess)
-            RegisterUiState.Success(result.getOrThrow())
-        else
-            RegisterUiState.Error(result.exceptionOrNull()?.message ?: "Error desconocido")
+            _uiState.value = if (result.isSuccess)
+                RegisterUiState.Success(result.getOrThrow())
+            else
+                RegisterUiState.Error(result.exceptionOrNull()?.message ?: "Error desconocido")
+        }
     }
 
     fun resetState() {

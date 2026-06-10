@@ -97,3 +97,26 @@ data class UpdateMerenderoRequest(
     val latitude: Double? = null,
     val longitude: Double? = null
 )
+
+@Serializable
+data class ConfirmNeedResponse(
+    val ok: Boolean,
+    val donorsOnWay: Int
+)
+
+@Serializable
+data class ConfirmationDto(
+    val donorId: String,
+    val donorNombre: String,
+    val needId: String,
+    val needTitle: String
+)
+
+@Serializable
+data class UpdateNeedRequest(
+    val title: String,
+    val description: String,
+    val type: String,
+    val urgency: String,
+    val items: List<String>
+)

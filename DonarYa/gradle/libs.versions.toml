@@ -12,6 +12,7 @@ composeBom = "2026.02.01"
 navigationCommonKtx = "2.9.8"
 navigationRuntimeKtx = "2.9.8"
 identityDoctypesJvm = "202411.1"
+material3 = "1.4.0"
 
 [libraries]
 androidx-compose-material = { group = "androidx.compose.material", name = "material" }
@@ -35,6 +36,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-navigation-common-ktx = { group = "androidx.navigation", name = "navigation-common-ktx", version.ref = "navigationCommonKtx" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 identity-doctypes-jvm = { group = "com.android.identity", name = "identity-doctypes-jvm", version.ref = "identityDoctypesJvm" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

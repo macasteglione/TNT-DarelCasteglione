@@ -13,6 +13,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.LocalDateTime
 
 fun Routing.merenderoRoutes() {
     route("/api/merenderos") {
@@ -55,7 +56,7 @@ fun Routing.merenderoRoutes() {
                         type = row[Needs.type],
                         urgency = row[Needs.urgency],
                         items = parseJsonList(row[Needs.items]),
-                        publishedMinutesAgo = row[Needs.publishedMinutesAgo],
+                        publishedMinutesAgo = java.time.Duration.between(row[Needs.createdAt], LocalDateTime.now()).toMinutes().toInt(),
                         donorsOnWay = row[Needs.donorsOnWay],
                         isCovered = row[Needs.isCovered]
                     )

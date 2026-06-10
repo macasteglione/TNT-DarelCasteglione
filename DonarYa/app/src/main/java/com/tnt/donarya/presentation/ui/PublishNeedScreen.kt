@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,20 +53,61 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.UrgencyLevel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.presentation.viewmodel.PublishNeedUiState
+import com.tnt.donarya.presentation.viewmodel.PublishNeedViewModel
+import com.tnt.donarya.data.repository.NeedRepositoryImpl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishNeedScreen(
+    needId: String = "",
     onBack: () -> Unit,
     onPublish: (type: NeedType, urgency: UrgencyLevel, description: String, items: List<String>, whatsapp: String) -> Unit,
-    initialWhatsapp: String = ""
+    initialWhatsapp: String = "",
+    viewModel: PublishNeedViewModel = viewModel()
 ) {
-    var selectedType by remember { mutableStateOf<NeedType?>(null) }
-    var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(null) }
-    var description by remember { mutableStateOf("") }
-    var items by remember { mutableStateOf(emptyList<String>()) }
-    var whatsapp by remember { mutableStateOf(initialWhatsapp) }
-    var newItem by remember { mutableStateOf("") }
+    val whatsappFromVM by viewModel.whatsapp.collectAsState()
+    val uiState        by viewModel.uiState.collectAsState()
+
+    var selectedType     by remember { mutableStateOf<NeedType?>(null) }
+    var selectedUrgency  by remember { mutableStateOf<UrgencyLevel?>(null) }
+    var description      by remember { mutableStateOf("") }
+    var items            by remember { mutableStateOf(emptyList<String>()) }
+    // Usás whatsappFromVM en lugar de initialWhatsapp
+    var whatsapp         by remember(whatsappFromVM) { mutableStateOf(whatsappFromVM) }
+    var newItem          by remember { mutableStateOf("") }
+
+    val user = UserRepositoryImpl.getCurrentUser()
+
+    val loadedNeed by viewModel.loadedNeed.collectAsState()
+
+    // Precargá los campos cuando llega el need cargado
+    LaunchedEffect(loadedNeed) {
+        loadedNeed?.let {
+            selectedType = it.type
+            selectedUrgency = it.urgency
+            description = it.description
+            items = it.items
+        }
+    }
+
+    // Pedí la carga cuando entra a la pantalla
+    LaunchedEffect(needId) {
+        if (needId.isNotBlank()) {
+            viewModel.cargarNecesidad(needId)
+        }
+    }
+
+    // Para ir atas cuando guarda
+    LaunchedEffect(uiState) {
+        if (uiState is PublishNeedUiState.Success) {
+            onBack()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -76,15 +118,6 @@ fun PublishNeedScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        val type = selectedType ?: return@TextButton
-                        val urgency = selectedUrgency ?: return@TextButton
-                        onPublish(type, urgency, description, items, whatsapp)
-                    }) {
-                        Text("Guardar", color = Color(0xFF40916C), fontWeight = FontWeight.SemiBold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -283,20 +316,33 @@ fun PublishNeedScreen(
             // Publish button
             Button(
                 onClick = {
-                    val type = selectedType ?: return@Button
+                    val type    = selectedType    ?: return@Button
                     val urgency = selectedUrgency ?: return@Button
-                    onPublish(type, urgency, description, items, whatsapp)
+                    if (needId.isNotBlank()) {
+                        viewModel.actualizarNecesidad(needId, type, urgency, description, items)
+                    } else {
+                        viewModel.publicar(
+                            merenderoId = user?.merenderoId ?: "",
+                            type        = type,
+                            urgency     = urgency,
+                            description = description,
+                            items       = items
+                        )
+                    }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C)),
-                shape = RoundedCornerShape(14.dp),
-                enabled = selectedType != null && selectedUrgency != null && description.isNotBlank()
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C)),
+                shape    = RoundedCornerShape(14.dp),
+                enabled  = selectedType != null && selectedUrgency != null
+                        && description.isNotBlank()
+                        && uiState !is PublishNeedUiState.Loading   // ← deshabilita mientras carga
             ) {
-                Text("Publicar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (uiState is PublishNeedUiState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
+                } else {
+                    Text(if (needId.isNotBlank()) "Guardar cambios" else "Publicar")
+                }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

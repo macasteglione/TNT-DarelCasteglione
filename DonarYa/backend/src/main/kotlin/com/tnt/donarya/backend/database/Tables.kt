@@ -51,3 +51,12 @@ object Needs : Table("needs") {
 
     override val primaryKey = PrimaryKey(id)
 }
+
+object DonorConfirmations : Table("donor_confirmations") {
+    val id        = varchar("id", 64).uniqueIndex()
+    val needId    = varchar("need_id", 64).references(Needs.id)
+    val donorId   = varchar("donor_id", 64).references(Users.id)
+    val createdAt = datetime("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
