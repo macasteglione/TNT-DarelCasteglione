@@ -1,14 +1,11 @@
 package com.tnt.donarya.domain.usecase
 
-import com.tnt.donarya.domain.model.Merendero
 import com.tnt.donarya.domain.model.User
 import com.tnt.donarya.domain.model.UserRole
-import com.tnt.donarya.domain.repository.MerenderoRepository
 import com.tnt.donarya.domain.repository.UserRepository
 
 class RegisterUseCase(
-    private val userRepository: UserRepository,
-    private val merenderoRepository: MerenderoRepository
+    private val userRepository: UserRepository
 ) {
     operator fun invoke(
         nombre: String,
@@ -16,7 +13,10 @@ class RegisterUseCase(
         password: String,
         rol: UserRole,
         nombreComedor: String? = null,
-        whatsapp: String? = null
+        whatsapp: String? = null,
+        direccion: String? = null,
+        latitude: Double = 0.0,
+        longitude: Double = 0.0
     ): Result<User> {
         if (nombre.isBlank() || email.isBlank() || password.isBlank())
             return Result.failure(Exception("Completá todos los campos"))
@@ -30,6 +30,9 @@ class RegisterUseCase(
         if (rol == UserRole.MERENDERO && nombreComedor.isNullOrBlank())
             return Result.failure(Exception("Ingresá el nombre del comedor"))
 
+        if (rol == UserRole.MERENDERO && whatsapp.isNullOrBlank())
+            return Result.failure(Exception("El WhatsApp es obligatorio para merenderos"))
+
         val id = System.currentTimeMillis().toString()
 
         val user = User(
@@ -40,27 +43,10 @@ class RegisterUseCase(
             rol = rol,
             nombreComedor = nombreComedor,
             whatsapp = whatsapp,
+            direccion = direccion,
             merenderoId = if (rol == UserRole.MERENDERO) id else null
         )
 
-        val result = userRepository.register(user)
-
-        if (result.isSuccess && rol == UserRole.MERENDERO) {
-            val merendero = Merendero(
-                id = id,
-                name = nombreComedor ?: nombre,
-                address = "",
-                neighborhood = "",
-                coordinator = nombre,
-                whatsapp = whatsapp ?: "",
-                kidsCount = 0,
-                activeNeeds = 0,
-                coveredNeeds = 0,
-                isVerified = false
-            )
-            merenderoRepository.add(merendero)
-        }
-
-        return result
+        return userRepository.register(user, latitude, longitude)
     }
 }

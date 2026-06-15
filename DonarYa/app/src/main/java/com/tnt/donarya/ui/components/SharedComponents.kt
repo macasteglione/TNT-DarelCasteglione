@@ -8,10 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -71,36 +68,14 @@ fun ItemChip(text: String, modifier: Modifier = Modifier) {
 fun DonarYaBottomBar(
     role: UserRole,
     currentRoute: String,
-    onAlertas: () -> Unit,
     onHome: () -> Unit,
     onDonar: () -> Unit,
-    onPerfil: () -> Unit,
-    alertCount: Int = 0
+    onPerfil: () -> Unit
 ) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp
     ) {
-        NavigationBarItem(
-            selected = currentRoute == "alerts",
-            onClick = onAlertas,
-            icon = {
-                BadgedBox(badge = {
-                    if (alertCount > 0) Badge { Text("$alertCount") }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Alertas"
-                    )
-                }
-            },
-            label = { Text("Alertas") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color(0xFF40916C),
-                selectedTextColor = Color(0xFF40916C),
-                indicatorColor = Color(0xFFD8F3DC)
-            )
-        )
         if (role == UserRole.MERENDERO) {
             NavigationBarItem(
                 selected = currentRoute == "merendero_home",
