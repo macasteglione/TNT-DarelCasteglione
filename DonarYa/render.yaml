@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: donarya-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/merenderos
+    plan: free
