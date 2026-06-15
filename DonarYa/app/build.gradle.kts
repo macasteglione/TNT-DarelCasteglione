@@ -32,7 +32,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"tnt-darelcasteglione.railway.internal\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com\"")
         }
     }
     compileOptions {
