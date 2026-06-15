@@ -24,7 +24,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.10:8080/api\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com/api\"")
         }
         release {
             isMinifyEnabled = false
@@ -32,7 +32,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com/api\"")
         }
     }
     compileOptions {
