@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,18 +38,23 @@ fun NotificationsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notificaciones") },
+                title = { Text("Notificaciones", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF1B4332)
+                    containerColor = Color(0xFF1B4332),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
-        }
+        },
+        containerColor = Color(0xFFF9FAFB)
     ) { padding ->
         if (state.isLoading) {
             Box(
@@ -64,7 +70,7 @@ fun NotificationsScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.Notifications,
+                        imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = Color(0xFFD1D5DB)
@@ -79,7 +85,9 @@ fun NotificationsScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(state.notifications, key = { it.id }) { noti ->
@@ -101,34 +109,42 @@ private fun NotificationCard(
     noti: NotificationItem,
     onClick: () -> Unit
 ) {
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable(onClick = onClick),
-        color = if (noti.isRead) Color.White else Color(0xFFF0FDF4)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (noti.isRead) Color.White else Color(0xFFF0FDF4)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
             if (!noti.isRead) {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .padding(top = 6.dp)
+                        .padding(top = 4.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF40916C))
                 )
                 Spacer(Modifier.width(12.dp))
+            } else {
+                Spacer(Modifier.width(22.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = noti.message,
                     fontSize = 14.sp,
                     fontWeight = if (noti.isRead) FontWeight.Normal else FontWeight.SemiBold,
-                    color = Color(0xFF1F2937)
+                    color = Color(0xFF1F2937),
+                    lineHeight = 20.sp
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = formatNotiDate(noti.createdAt),
                     fontSize = 11.sp,
@@ -136,7 +152,6 @@ private fun NotificationCard(
                 )
             }
         }
-        HorizontalDivider(color = Color(0xFFF3F4F6))
     }
 }
 
