@@ -12,10 +12,7 @@ import io.ktor.http.*
 import io.ktor.serialization.gson.*
 import com.tnt.donarya.BuildConfig
 object ApiClient {
-    private val BASE_URL = if (BuildConfig.DEBUG)
-        "http://192.168.0.10:8080/api"   // teléfono físico
-    else
-        "http://10.0.2.2:8080/api"        // emulador
+    private val BASE_URL = BuildConfig.API_BASE_URL
 
     private val gson = Gson()
 

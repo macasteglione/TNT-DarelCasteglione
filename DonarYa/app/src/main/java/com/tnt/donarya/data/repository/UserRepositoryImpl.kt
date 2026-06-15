@@ -46,7 +46,10 @@ object UserRepositoryImpl : UserRepository {
                 nombreComedor = dto.user.nombreComedor,
                 whatsapp = dto.user.whatsapp,
                 direccion = dto.user.direccion,
-                merenderoId = dto.user.merenderoId
+                merenderoId = dto.user.merenderoId,
+                donationsCount = dto.user.donationsCount,
+                mendecerosHelped = dto.user.mendecerosHelped,
+                beneficiados = dto.user.beneficiados
             )
             TokenStorage.saveToken(dto.token)
             users.add(newUser)
@@ -69,7 +72,10 @@ object UserRepositoryImpl : UserRepository {
                 nombreComedor = dto.user.nombreComedor,
                 whatsapp = dto.user.whatsapp,
                 direccion = dto.user.direccion,
-                merenderoId = dto.user.merenderoId
+                merenderoId = dto.user.merenderoId,
+                donationsCount = dto.user.donationsCount,
+                mendecerosHelped = dto.user.mendecerosHelped,
+                beneficiados = dto.user.beneficiados
             )
             TokenStorage.saveToken(dto.token)
             currentUser = user

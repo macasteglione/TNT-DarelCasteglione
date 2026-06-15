@@ -25,8 +25,11 @@ class ProfileViewModel : ViewModel() {
         loadProfile()
     }
 
+    fun refresh() { loadProfile() }
+
     private fun loadProfile() {
         viewModelScope.launch(Dispatchers.IO) {
+            MerenderoRepositoryImpl.invalidateCache()
             val user = UserRepositoryImpl.getCurrentUser()
             val merendero = user?.merenderoId?.let {
                 MerenderoRepositoryImpl.getById(it)

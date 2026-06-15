@@ -85,11 +85,20 @@ class MerenderoHomeViewModel : ViewModel() {
 
     fun marcarComoCubierta(needId: String) {
         viewModelScope.launch(Dispatchers.IO) {
+            _actionState.value = ActionState.Loading
             val result = markNeedCoveredUseCase(needId)
             if (result.isSuccess) {
+                MerenderoRepositoryImpl.invalidateCache()
+                NeedRepositoryImpl.invalidateCache()
                 val currentUser = UserRepositoryImpl.getCurrentUser()
                 val merenderoId = currentUser?.merenderoId ?: return@launch
                 actualizarEstado(merenderoId)
+                _actionState.value = ActionState.Success
+                _notificacion.emit("Necesidad marcada como cubierta")
+            } else {
+                _actionState.value = ActionState.Error(
+                    result.exceptionOrNull()?.message ?: "Error al marcar como cubierta"
+                )
             }
         }
     }

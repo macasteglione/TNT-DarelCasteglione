@@ -30,7 +30,10 @@ data class UserDto(
     val nombreComedor: String? = null,
     val whatsapp: String? = null,
     val direccion: String? = null,
-    val merenderoId: String? = null
+    val merenderoId: String? = null,
+    val donationsCount: Int = 0,
+    val mendecerosHelped: Int = 0,
+    val beneficiados: Int = 0
 )
 
 data class MerenderoDto(

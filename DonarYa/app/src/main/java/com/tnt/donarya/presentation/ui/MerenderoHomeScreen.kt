@@ -285,6 +285,7 @@ fun MerenderoHomeScreen(
                                 need = need,
                                 onEdit = onEditNeed,
                                 onDelete = { needToDelete = need },
+                                onMarkCovered = { viewModel.marcarComoCubierta(need.id) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                             )
                         }
@@ -372,7 +373,7 @@ fun VerticalDivider() {
 }
 
 @Composable
-fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Unit, onMarkCovered: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -435,7 +436,6 @@ fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Uni
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Botón eliminar — rojo, a la izquierda
                 OutlinedButton(
                     onClick = onDelete,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -452,16 +452,21 @@ fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Uni
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Botón editar — igual que antes
-                OutlinedButton(
-                    onClick = { onEdit(need.id) },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF40916C)
+                Button(
+                    onClick = onMarkCovered,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF40916C)
                     ),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                     modifier = Modifier.height(34.dp)
                 ) {
-                    Text("Editar", fontSize = 13.sp)
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Cubierta", fontSize = 13.sp)
                 }
             }
         }
