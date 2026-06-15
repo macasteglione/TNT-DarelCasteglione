@@ -162,10 +162,7 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
 
         composable(Screen.Notifications.route) {
             NotificationsScreen(
-                onBack = { navController.popBackStack() },
-                onNeedClick = { needId ->
-                    navController.navigate(Screen.MerenderoDetail.createRoute(needId))
-                }
+                onBack = { navController.popBackStack() }
             )
         }
 

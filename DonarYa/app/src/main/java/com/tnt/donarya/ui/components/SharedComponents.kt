@@ -148,7 +148,7 @@ fun DonarYaBottomBar(
                     }
                 }
             },
-            label = { Text("Notis") },
+            label = { Text("Notificaciones") },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF40916C),
                 selectedTextColor = Color(0xFF40916C),

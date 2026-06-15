@@ -1,8 +1,12 @@
 package com.tnt.donarya.presentation.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.tnt.donarya.data.NotificationHelper
 import com.tnt.donarya.data.repository.NotificationRepositoryImpl
 import com.tnt.donarya.domain.model.NotificationItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,11 +22,26 @@ class NotificationsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(NotificationsUiState())
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
 
-    fun loadNotifications() {
+    private var seenIds = mutableSetOf<String>()
+
+    fun loadNotifications(context: Context? = null) {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         kotlinx.coroutines.runBlocking {
             val list = NotificationRepositoryImpl.getNotifications()
             val unread = list.count { !it.isRead }
+
+            if (context != null) {
+                NotificationHelper.init(context)
+                val newOnes = list.filter { it.id !in seenIds && !it.isRead }
+                if (newOnes.isNotEmpty()) {
+                    val grouped = newOnes.map {
+                        Triple(it.id, "DonarYa", it.message)
+                    }
+                    NotificationHelper.showMultiple(context, grouped)
+                    seenIds.addAll(newOnes.map { it.id })
+                }
+            }
+
             _uiState.value = _uiState.value.copy(
                 notifications = list,
                 unreadCount = unread,
@@ -43,17 +62,8 @@ class NotificationsViewModel : ViewModel() {
         }
     }
 
-    fun refresh() {
+    fun refresh(context: Context? = null) {
         NotificationRepositoryImpl.invalidateCache()
-        loadNotifications()
-    }
-
-    companion object {
-        fun getUnreadCount(): Int {
-            return kotlinx.coroutines.runBlocking {
-                val list = NotificationRepositoryImpl.getNotifications()
-                list.count { !it.isRead }
-            }
-        }
+        loadNotifications(context)
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.domain.model.NotificationItem
@@ -26,13 +27,13 @@ import com.tnt.donarya.domain.model.NotificationItem
 @Composable
 fun NotificationsScreen(
     onBack: () -> Unit,
-    onNeedClick: (String) -> Unit,
     viewModel: NotificationsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.refresh()
+        viewModel.refresh(context)
     }
 
     Scaffold(
@@ -95,7 +96,6 @@ fun NotificationsScreen(
                         noti = noti,
                         onClick = {
                             if (!noti.isRead) viewModel.markAsRead(noti.id)
-                            noti.relatedNeedId?.let { onNeedClick(it) }
                         }
                     )
                 }
