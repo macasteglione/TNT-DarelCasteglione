@@ -70,7 +70,8 @@ fun MerenderoHomeScreen(
     onPublishNeed: () -> Unit,
     onEditNeed: (String) -> Unit,
     onPerfil: () -> Unit,
-    role: UserRole = UserRole.MERENDERO
+    role: UserRole = UserRole.MERENDERO,
+    onNotifications: () -> Unit = {}
 ) {
     val viewModel: MerenderoHomeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -157,7 +158,8 @@ fun MerenderoHomeScreen(
                             currentRoute = "merendero_home",
                             onHome = {},
                             onDonar = {},
-                            onPerfil = onPerfil
+                            onPerfil = onPerfil,
+                            onNotifications = onNotifications
                         )
                     },
                     containerColor = Color(0xFFF9FAFB)

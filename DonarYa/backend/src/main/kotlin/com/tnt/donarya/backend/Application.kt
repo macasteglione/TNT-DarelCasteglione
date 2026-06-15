@@ -6,6 +6,7 @@ import com.tnt.donarya.backend.middleware.jwtAuthConfig
 import com.tnt.donarya.backend.routes.authRoutes
 import com.tnt.donarya.backend.routes.merenderoRoutes
 import com.tnt.donarya.backend.routes.needRoutes
+import com.tnt.donarya.backend.routes.notificationRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -50,5 +51,6 @@ fun Application.module() {
         authRoutes()
         merenderoRoutes()
         needRoutes()
+        notificationRoutes()
     }
 }

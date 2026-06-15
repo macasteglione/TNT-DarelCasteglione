@@ -60,3 +60,16 @@ object DonorConfirmations : Table("donor_confirmations") {
 
     override val primaryKey = PrimaryKey(id)
 }
+
+object Notifications : Table("notifications") {
+    val id = varchar("id", 64).uniqueIndex()
+    val userId = varchar("user_id", 64).references(Users.id)
+    val type = varchar("type", 50)
+    val message = varchar("message", 500)
+    val relatedNeedId = varchar("related_need_id", 64).references(Needs.id).nullable()
+    val relatedUserId = varchar("related_user_id", 64).references(Users.id).nullable()
+    val isRead = bool("is_read").default(false)
+    val createdAt = datetime("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}

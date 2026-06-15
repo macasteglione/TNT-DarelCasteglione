@@ -17,6 +17,7 @@ import com.tnt.donarya.presentation.ui.OnboardingScreen
 import com.tnt.donarya.presentation.ui.ProfileScreen
 import com.tnt.donarya.presentation.ui.PublishNeedScreen
 import com.tnt.donarya.presentation.ui.RegisterScreen
+import com.tnt.donarya.presentation.ui.NotificationsScreen
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String) {
@@ -76,7 +77,10 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         restoreState = true
                     }
                 },
-                role = role
+                role = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
             )
         }
 
@@ -121,7 +125,10 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         restoreState = true
                     }
                 },
-                role = role
+                role = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
             )
         }
 
@@ -146,7 +153,19 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         launchSingleTop = true
                     }
                 },
-                roleEnum = role
+                roleEnum = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
+            )
+        }
+
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() },
+                onNeedClick = { needId ->
+                    navController.navigate(Screen.MerenderoDetail.createRoute(needId))
+                }
             )
         }
 

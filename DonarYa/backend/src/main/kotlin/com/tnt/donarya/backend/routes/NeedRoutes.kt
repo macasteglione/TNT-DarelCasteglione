@@ -17,8 +17,10 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 import com.tnt.donarya.backend.database.DonorConfirmations
+import com.tnt.donarya.backend.database.Notifications
 import com.tnt.donarya.backend.models.ConfirmNeedResponse
 import com.tnt.donarya.backend.models.UpdateNeedRequest
+import com.tnt.donarya.backend.database.Users
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -89,11 +91,31 @@ fun Routing.needRoutes() {
                 val merenderoId = merenderoRow[Merenderos.id]
                 if (needRow[Needs.merenderoId] != merenderoId) return@put call.respond(HttpStatusCode.Forbidden)
 
+                val needTitle = needRow[Needs.title]
                 transaction {
                     Needs.update({ Needs.id eq needId }) {
                         it[Needs.isCovered] = true
                     }
                     exec("UPDATE merenderos SET active_needs = GREATEST(active_needs - 1, 0), covered_needs = covered_needs + 1 WHERE id = ?", listOf(Merenderos.id.columnType to merenderoId))
+
+                    val confirmingDonors = DonorConfirmations.selectAll()
+                        .where { DonorConfirmations.needId eq needId }
+                        .map { it[DonorConfirmations.donorId] }
+
+                    val now = LocalDateTime.now()
+                    confirmingDonors.forEachIndexed { i, donorId ->
+                        val nid = "noti_${System.currentTimeMillis()}_$i"
+                        Notifications.insert {
+                            it[Notifications.id] = nid
+                            it[Notifications.userId] = donorId
+                            it[Notifications.type] = "NECESIDAD_CUBIERTA"
+                            it[Notifications.message] = "La necesidad \"$needTitle\" fue marcada como cubierta"
+                            it[Notifications.relatedNeedId] = needId
+                            it[Notifications.relatedUserId] = userId
+                            it[Notifications.isRead] = false
+                            it[Notifications.createdAt] = now
+                        }
+                    }
                 }
                 call.respond(HttpStatusCode.OK, mapOf("ok" to true))
             }
@@ -158,6 +180,29 @@ fun Routing.needRoutes() {
                     Needs.selectAll()
                         .where { Needs.id eq needId }
                         .single()[Needs.donorsOnWay]
+                }
+
+                val needTitle = needRow[Needs.title]
+                val donorNombre = transaction {
+                    Users.selectAll().where { Users.id eq userId }.singleOrNull()?.get(Users.nombre)
+                }
+                val notiId = "noti_${System.currentTimeMillis()}"
+                transaction {
+                    val merenderoUserId = Merenderos.selectAll()
+                        .where { Merenderos.id eq needRow[Needs.merenderoId] }
+                        .singleOrNull()?.get(Merenderos.userId)
+                    if (merenderoUserId != null) {
+                        Notifications.insert {
+                            it[Notifications.id] = notiId
+                            it[Notifications.userId] = merenderoUserId
+                            it[Notifications.type] = "DONANTE_CONFIRMADO"
+                            it[Notifications.message] = "${donorNombre ?: "Un donante"} confirmó que va a ayudar con \"$needTitle\""
+                            it[Notifications.relatedNeedId] = needId
+                            it[Notifications.relatedUserId] = userId
+                            it[Notifications.isRead] = false
+                            it[Notifications.createdAt] = LocalDateTime.now()
+                        }
+                    }
                 }
 
                 call.respond(

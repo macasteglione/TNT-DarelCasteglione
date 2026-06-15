@@ -64,7 +64,8 @@ fun ProfileScreen(
     onHome: () -> Unit,
     onDonar: () -> Unit,
     onLogout: () -> Unit,
-    roleEnum: UserRole = UserRole.DONANTE
+    roleEnum: UserRole = UserRole.DONANTE,
+    onNotifications: () -> Unit = {}
 ) {
 
     val viewModel: ProfileViewModel = viewModel()
@@ -94,7 +95,8 @@ fun ProfileScreen(
                 currentRoute = "profile",
                 onHome = onHome,
                 onDonar = onDonar,
-                onPerfil = {}
+                onPerfil = {},
+                onNotifications = onNotifications
             )
         },
         containerColor = Color(0xFFF9FAFB)

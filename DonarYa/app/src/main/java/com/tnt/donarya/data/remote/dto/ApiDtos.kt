@@ -101,3 +101,14 @@ data class UpdateNeedRequestDto(
     val urgency: String,
     val items: List<String>
 )
+
+data class NotificationDto(
+    val id: String,
+    val userId: String,
+    val type: String,
+    val message: String,
+    val relatedNeedId: String? = null,
+    val relatedUserId: String? = null,
+    val isRead: Boolean = false,
+    val createdAt: String
+)
