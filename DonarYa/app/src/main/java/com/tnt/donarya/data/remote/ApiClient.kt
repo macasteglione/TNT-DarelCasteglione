@@ -156,4 +156,22 @@ object ApiClient {
         }
         response.ensureSuccess()
     }
+
+    suspend fun updateProfile(
+        req: UpdateProfileRequestDto
+    ): Result<UserDto> = runCatching {
+
+        val response = client.put("$BASE_URL/auth/me") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(gson.toJson(req))
+        }
+
+        response.ensureSuccess()
+
+        gson.fromJson(
+            response.bodyAsText(),
+            UserDto::class.java
+        )
+    }
 }

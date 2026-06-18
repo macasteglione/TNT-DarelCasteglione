@@ -135,3 +135,12 @@ data class NotificationDto(
     val isRead: Boolean = false,
     val createdAt: String
 )
+
+@Serializable
+data class UpdateProfileRequest(
+    val nombre: String,
+    val email: String,
+    val nombreComedor: String? = null,
+    val whatsapp: String? = null,
+    val direccion: String? = null
+)

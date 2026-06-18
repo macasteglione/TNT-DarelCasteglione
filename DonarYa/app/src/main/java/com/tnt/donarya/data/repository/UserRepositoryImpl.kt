@@ -6,6 +6,7 @@ import com.tnt.donarya.data.remote.ApiClient
 import com.tnt.donarya.data.remote.TokenStorage
 import com.tnt.donarya.data.remote.dto.LoginRequestDto
 import com.tnt.donarya.data.remote.dto.RegisterRequestDto
+import com.tnt.donarya.data.remote.dto.UpdateProfileRequestDto
 import com.tnt.donarya.domain.model.Badge
 import com.tnt.donarya.domain.model.DonationRecord
 import com.tnt.donarya.domain.model.NeedType
@@ -107,5 +108,25 @@ object UserRepositoryImpl : UserRepository {
         val email = storage.getLoggedUser()
         currentUser = users.find { it.email == email }
         return currentUser
+    }
+
+    override suspend fun updateProfile(req: UpdateProfileRequestDto): Result<User> {
+        val result = ApiClient.updateProfile(req)
+        return result.map { dto ->
+            val updatedUser = currentUser!!.copy(
+                nombre = dto.nombre,
+                email = dto.email,
+                nombreComedor = dto.nombreComedor,
+                whatsapp = dto.whatsapp,
+                direccion = dto.direccion
+            )
+            currentUser = updatedUser
+            // Actualizar también en LocalStorage para que persista
+            val idx = users.indexOfFirst { it.id == updatedUser.id }
+            if (idx >= 0) users[idx] = updatedUser
+            storage.saveUsers(users)
+            storage.saveLoggedUser(updatedUser.email)
+            updatedUser
+        }
     }
 }

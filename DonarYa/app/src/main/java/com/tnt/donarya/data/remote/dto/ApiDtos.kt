@@ -112,3 +112,11 @@ data class NotificationDto(
     val isRead: Boolean = false,
     val createdAt: String
 )
+
+data class UpdateProfileRequestDto(
+    val nombre: String,
+    val email: String,
+    val nombreComedor: String? = null,
+    val whatsapp: String? = null,
+    val direccion: String? = null
+)

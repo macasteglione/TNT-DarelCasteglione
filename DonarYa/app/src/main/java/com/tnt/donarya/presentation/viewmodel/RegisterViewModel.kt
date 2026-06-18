@@ -3,6 +3,7 @@ package com.tnt.donarya.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tnt.donarya.data.remote.AddressRepository
+import com.tnt.donarya.data.remote.dto.UpdateProfileRequestDto
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.AddressSuggestion
 import com.tnt.donarya.domain.model.UserRole
@@ -70,6 +71,39 @@ class RegisterViewModel : ViewModel() {
                 RegisterUiState.Success(result.getOrThrow())
             else
                 RegisterUiState.Error(result.exceptionOrNull()?.message ?: "Error desconocido")
+        }
+    }
+
+
+
+    fun actualizar(
+        nombre: String,
+        email: String,
+        contrasenia: String,
+        rol: UserRole,
+        nombreComedor: String? = null,
+        whatsapp: String? = null,
+        direccion: String? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = RegisterUiState.Loading
+
+            val result = UserRepositoryImpl.updateProfile(
+                UpdateProfileRequestDto(
+                    nombre = nombre,
+                    email = email,
+                    nombreComedor = nombreComedor?.ifBlank { null },
+                    whatsapp = whatsapp?.ifBlank { null },
+                    direccion = direccion?.ifBlank { null }
+                )
+            )
+
+            _uiState.value = if (result.isSuccess)
+                RegisterUiState.Success(result.getOrThrow())
+            else
+                RegisterUiState.Error(
+                    result.exceptionOrNull()?.message ?: "Error al actualizar"
+                )
         }
     }
 

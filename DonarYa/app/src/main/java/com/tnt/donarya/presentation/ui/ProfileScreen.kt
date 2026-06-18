@@ -45,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.DonationRecord
 import com.tnt.donarya.domain.model.NeedType
@@ -55,6 +54,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.runtime.setValue
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +68,7 @@ fun ProfileScreen(
     onHome: () -> Unit,
     onDonar: () -> Unit,
     onLogout: () -> Unit,
+    onEditProfile: () -> Unit = {},
     roleEnum: UserRole = UserRole.DONANTE,
     onNotifications: () -> Unit = {}
 ) {
@@ -87,6 +92,8 @@ fun ProfileScreen(
         ?.take(2)
         ?.joinToString("") { it.first().uppercase() }
         ?: "?"
+
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -126,16 +133,52 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            IconButton(onClick = {
-                                UserRepositoryImpl.logout()
-                                onLogout()
-                            }
-                            ) {
-                                Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "Ajustes",
-                                    tint = Color.White
-                                )
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Ajustes",
+                                        tint = Color.White
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Editar perfil") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Person,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            onEditProfile()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Cerrar sesión",
+                                                color = Color(0xFFE53935)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.ExitToApp,
+                                                contentDescription = null,
+                                                tint = Color(0xFFE53935)
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            UserRepositoryImpl.logout()
+                                            onLogout()
+                                        }
+                                    )
+                                }
                             }
                         }
                         Box(

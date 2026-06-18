@@ -132,5 +132,78 @@ fun Routing.authRoutes() {
                 )
             ))
         }
+
+        authenticate("auth-jwt") {
+            put("/me") {
+                val userId = call.principal<JWTPrincipal>()
+                    ?.payload?.subject
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized)
+
+                val req = call.receive<UpdateProfileRequest>()
+
+                if (req.nombre.isBlank())
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "El nombre no puede estar vacío")
+                    )
+                if (!req.email.contains("@"))
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Email inválido")
+                    )
+
+                // Verificar que el email nuevo no lo tenga otro usuario
+                val emailTaken = transaction {
+                    Users.selectAll()
+                        .where { (Users.email eq req.email) and (Users.id neq userId) }
+                        .singleOrNull()
+                }
+                if (emailTaken != null)
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "El email ya está en uso")
+                    )
+
+                val updatedRow = transaction {
+                    Users.update({ Users.id eq userId }) {
+                        it[nombre] = req.nombre
+                        it[email] = req.email
+                        it[nombreComedor] = req.nombreComedor
+                        it[whatsapp] = req.whatsapp
+                        it[direccion] = req.direccion
+                    }
+
+                    // Si es merendero, actualizar también la tabla Merenderos
+                    val rol = Users.selectAll()
+                        .where { Users.id eq userId }
+                        .single()[Users.rol]
+
+                    if (rol == "MERENDERO") {
+                        Merenderos.update({ Merenderos.userId eq userId }) {
+                            it[name] = req.nombreComedor ?: req.nombre
+                            it[coordinator] = req.nombre
+                            it[Merenderos.whatsapp] = req.whatsapp ?: ""
+                            it[address] = req.direccion ?: ""
+                        }
+                    }
+
+                    Users.selectAll().where { Users.id eq userId }.single()
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    UserDto(
+                        id = userId,
+                        nombre = updatedRow[Users.nombre],
+                        email = updatedRow[Users.email],
+                        rol = updatedRow[Users.rol],
+                        nombreComedor = updatedRow[Users.nombreComedor],
+                        whatsapp = updatedRow[Users.whatsapp],
+                        direccion = updatedRow[Users.direccion],
+                        merenderoId = if (updatedRow[Users.rol] == "MERENDERO") userId else null
+                    )
+                )
+            }
+        }
     }
 }
