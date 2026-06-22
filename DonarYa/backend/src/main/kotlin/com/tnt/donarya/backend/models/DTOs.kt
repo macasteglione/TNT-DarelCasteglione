@@ -144,3 +144,18 @@ data class UpdateProfileRequest(
     val whatsapp: String? = null,
     val direccion: String? = null
 )
+
+@Serializable
+data class DonationHistoryDto(
+    val needTitle: String,
+    val needType: String,
+    val merenderoName: String,
+    val daysAgo: Int
+)
+
+@Serializable
+data class NeedHistoryDto(
+    val title: String,
+    val type: String,
+    val daysAgo: Int
+)

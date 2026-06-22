@@ -174,4 +174,22 @@ object ApiClient {
             UserDto::class.java
         )
     }
+
+    suspend fun getDonationHistory(): Result<List<DonationHistoryDto>> = runCatching {
+        val url = "$BASE_URL/needs/donations/history"
+        val response = client.get(url) {
+            withAuth()
+        }
+
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), Array<DonationHistoryDto>::class.java).toList()
+    }
+
+    suspend fun getNeedsHistory(): Result<List<NeedHistoryDto>> = runCatching {
+        val response = client.get("$BASE_URL/needs/history") {
+            withAuth()
+        }
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), Array<NeedHistoryDto>::class.java).toList()
+    }
 }

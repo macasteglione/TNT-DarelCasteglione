@@ -13,6 +13,8 @@ import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 
 fun Routing.authRoutes() {
     route("/api/auth") {

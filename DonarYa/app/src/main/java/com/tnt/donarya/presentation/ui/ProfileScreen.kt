@@ -59,6 +59,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.setValue
+import com.tnt.donarya.data.remote.dto.DonationHistoryDto
+import com.tnt.donarya.data.remote.dto.NeedHistoryDto
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +86,13 @@ fun ProfileScreen(
             viewModel.refresh()
         }
     }
+
+    // Para el historial
+    val donationsCount = profileData.donationHistory.size
+    val merenderosHelped = profileData.donationHistory
+        .map { it.merenderoName }
+        .distinct()
+        .size
 
     // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
     val initials = user?.nombre
@@ -237,41 +246,30 @@ fun ProfileScreen(
                             if (user?.rol == UserRole.MERENDERO) {
 
                                 ImpactStat(
-                                    "${merendero?.kidsCount ?: user?.cantidadChicos ?: 0}",
-                                    "chicos\natendidos",
+                                    "$donationsCount",
+                                    "necesidades\ncompletadas",
                                     null
                                 )
 
                                 ImpactStat(
-                                    "${merendero?.activeNeeds ?: 0}",
-                                    "necesidades\nactivas",
-                                    "+1 hoy"
-                                )
-
-                                ImpactStat(
-                                    "${merendero?.coveredNeeds ?: 0}",
-                                    "donaciones\nrecibidas",
+                                    "$merenderosHelped",
+                                    "merenderos\nayudados",
                                     null
                                 )
 
                             } else {
 
                                 ImpactStat(
-                                    "${user?.donationsCount ?: 0}",
-                                    "donaciones",
-                                    "+5 este mes"
-                                )
-
-                                ImpactStat(
-                                    "${user?.mendecerosHelped ?: 0}",
-                                    "merenderos\nayudados",
+                                    "$donationsCount",
+                                    "necesidades\ncompletadas",
                                     null
                                 )
 
                                 ImpactStat(
-                                    "${user?.beneficiados ?: 0}",
-                                    "beneficiados",
-                                    null)
+                                    "$merenderosHelped",
+                                    "merenderos\nayudados",
+                                    null
+                                )
                             }
                         }
                     }
@@ -353,8 +351,31 @@ fun ProfileScreen(
                     }
                 }
 
-                items(user?.recentDonations ?: emptyList()) {
-                    donation -> DonationRow(donation) }
+                items(profileData.donationHistory) { donation ->
+                    DonationHistoryRow(donation)
+                }
+            }
+            if (user?.rol == UserRole.MERENDERO) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Necesidades completadas",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF111827)
+                        )
+                    }
+                }
+
+                items(profileData.needsHistory) { need ->
+                    NeedHistoryRow(need)
+                }
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -381,15 +402,7 @@ fun ImpactStat(value: String, label: String, extra: String?) {
 }
 
 @Composable
-fun DonationRow(donation: DonationRecord) {
-    val (emoji, color) = when (donation.type) {
-        NeedType.ALIMENTOS -> "🍞" to Color(0xFFF4A261)
-        NeedType.ROPA -> "👕" to Color(0xFF60A5FA)
-        NeedType.GAS -> "🔥" to Color(0xFFE63946)
-        NeedType.ABRIGO -> "🧥" to Color(0xFF8B5CF6)
-        NeedType.OTROS -> "📦" to Color(0xFF6B7280)
-    }
-
+fun DonationHistoryRow(donation: DonationHistoryDto) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -400,15 +413,19 @@ fun DonationRow(donation: DonationRecord) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.12f)),
+                .background(Color(0xFF40916C).copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(emoji, fontSize = 18.sp)
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF40916C)
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                donation.type.label,
+                donation.needTitle,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
                 color = Color(0xFF111827)
@@ -419,21 +436,43 @@ fun DonationRow(donation: DonationRecord) {
                 color = Color(0xFF6B7280)
             )
         }
-        if (donation.delivered) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFF40916C),
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    " Entregado",
-                    fontSize = 12.sp,
-                    color = Color(0xFF40916C),
-                    fontWeight = FontWeight.Medium
-                )
-            }
+    }
+    Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))
+}
+@Composable
+fun NeedHistoryRow(need: NeedHistoryDto) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF40916C).copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF40916C)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                need.title,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = Color(0xFF111827)
+            )
+            Text(
+                "Cubierta hace ${need.daysAgo} días",
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280)
+            )
         }
     }
     Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))
