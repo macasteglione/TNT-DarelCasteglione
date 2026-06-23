@@ -1,6 +1,7 @@
 package com.tnt.donarya.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,9 +20,15 @@ import com.tnt.donarya.presentation.ui.ProfileScreen
 import com.tnt.donarya.presentation.ui.PublishNeedScreen
 import com.tnt.donarya.presentation.ui.RegisterScreen
 import com.tnt.donarya.presentation.ui.NotificationsScreen
+import com.tnt.donarya.presentation.ui.MapPickerScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String) {
+    val registerViewModel: RegisterViewModel = viewModel()
+    var updateAddressCallback: ((String) -> Unit)? = null
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -47,8 +54,17 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
         ) { backStack ->
             val rolStr = backStack.arguments?.getString("rolInicial") ?: ""
             val rolInicial = if (rolStr.isNotBlank()) UserRole.valueOf(rolStr) else null
+            
+            // Si entramos sin rol (desde el login o similar), limpiar estado previo
+            LaunchedEffect(rolStr) {
+                if (rolStr.isBlank()) {
+                    registerViewModel.resetState()
+                }
+            }
+
             RegisterScreen(
                 rolInicial = rolInicial,
+                viewModel = registerViewModel,
                 onRegisterSuccess = { rol ->
                     val destino = if (rol == UserRole.MERENDERO)
                         Screen.MerenderoHome.route
@@ -58,6 +74,18 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 },
+                onOpenMap = {
+                    navController.navigate(Screen.MapPicker.route)
+                },
+                onBack = { navController.popBackStack() },
+                onAddressSelected = { updateAddressCallback = it }
+            )
+        }
+
+        composable(Screen.MapPicker.route) {
+            MapPickerScreen(
+                viewModel = registerViewModel,
+                onAddressSelected = { updateAddressCallback?.invoke(it) },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -175,12 +203,16 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             RegisterScreen(
                 isEditMode = true,
                 rolInicial = user?.rol,
+                viewModel = registerViewModel,
                 initialNombre = user?.nombre ?: "",
                 initialEmail = user?.email ?: "",
                 initialNombreComedor = user?.nombreComedor ?: "",
                 initialWhatsapp = user?.whatsapp ?: "",
                 initialDireccion = user?.direccion ?: "",
                 onRegisterSuccess = { navController.popBackStack() },
+                onOpenMap = {
+                    navController.navigate(Screen.MapPicker.route)
+                },
                 onBack = { navController.popBackStack() }
             )
         }

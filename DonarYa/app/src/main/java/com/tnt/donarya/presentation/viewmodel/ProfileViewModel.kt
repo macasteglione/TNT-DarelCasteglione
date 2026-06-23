@@ -24,7 +24,12 @@ data class ProfileData(
 
 class ProfileViewModel : ViewModel() {
 
-    private val _profileData = MutableStateFlow(ProfileData(null, null))
+    private val _profileData = MutableStateFlow(
+        ProfileData(
+            user = UserRepositoryImpl.getCurrentUser(),
+            merendero = null
+        )
+    )
     val profileData: StateFlow<ProfileData> = _profileData
 
     init {

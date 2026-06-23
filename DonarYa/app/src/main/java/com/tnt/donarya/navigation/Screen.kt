@@ -28,4 +28,5 @@ sealed class Screen(val route: String) {
 
     object Notifications : Screen("notifications")
     object EditProfile : Screen("edit_profile")
+    object MapPicker : Screen("map_picker")
 }

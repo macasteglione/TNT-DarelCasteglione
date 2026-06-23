@@ -14,13 +14,11 @@ import kotlinx.coroutines.sync.withLock
 
 object NeedRepositoryImpl : NeedRepository {
 
-    // Usamos un Map para que cada merendero tenga su propia lista de needs,
-    // en lugar de una lista plana compartida que se pisa entre coroutines.
+    private val firebaseRepo = FirebaseNeedRepository()
+    private val useFirebase = true 
+
     private val needsByMerendero = mutableMapOf<String, List<NeedItem>>()
     private val fetchedMerenderos = mutableSetOf<String>()
-
-    // Mutex para serializar el acceso concurrente (pull-to-refresh lanza
-    // varias coroutines en paralelo, una por merendero).
     private val mutex = Mutex()
 
     private suspend fun ensureFetched(merenderoId: String) {
@@ -36,11 +34,16 @@ object NeedRepositoryImpl : NeedRepository {
     }
 
     override suspend fun getByMerendero(merenderoId: String): List<NeedItem> {
+        if (useFirebase) return firebaseRepo.getByMerendero(merenderoId)
         ensureFetched(merenderoId)
         return mutex.withLock { needsByMerendero[merenderoId] ?: emptyList() }
     }
 
     override suspend fun add(merenderoId: String, need: NeedItem) {
+        if (useFirebase) {
+            firebaseRepo.add(merenderoId, need)
+            return
+        }
         val result = ApiClient.createNeed(
             CreateNeedRequestDto(
                 title = need.title,
@@ -51,39 +54,43 @@ object NeedRepositoryImpl : NeedRepository {
             )
         )
         if (result.isSuccess) {
-            // Forzar re-fetch la próxima vez para obtener el ID real del servidor
             mutex.withLock { fetchedMerenderos.remove(merenderoId) }
         }
     }
 
-    override fun markAsCovered(needId: String): Result<Unit> = runBlocking(Dispatchers.IO) {
-        val result = ApiClient.markNeedCovered(needId)
-        if (result.isSuccess) {
-            mutex.withLock {
-                needsByMerendero.forEach { (mId, list) ->
-                    val idx = list.indexOfFirst { it.id == needId }
-                    if (idx != -1) {
-                        needsByMerendero[mId] = list.toMutableList().also {
-                            it[idx] = it[idx].copy(isCovered = true)
+    override fun markAsCovered(needId: String): Result<Unit> {
+        if (useFirebase) return firebaseRepo.markAsCovered(needId)
+        return runBlocking(Dispatchers.IO) {
+            val result = ApiClient.markNeedCovered(needId)
+            if (result.isSuccess) {
+                mutex.withLock {
+                    needsByMerendero.forEach { (mId, list) ->
+                        val idx = list.indexOfFirst { it.id == needId }
+                        if (idx != -1) {
+                            needsByMerendero[mId] = list.toMutableList().also {
+                                it[idx] = it[idx].copy(isCovered = true)
+                            }
                         }
                     }
                 }
             }
+            result
         }
-        result
     }
 
     suspend fun refreshForMerendero(merenderoId: String) {
+        if (useFirebase) return
         mutex.withLock { fetchedMerenderos.remove(merenderoId) }
         ensureFetched(merenderoId)
     }
 
     fun invalidateCache() {
-        // runBlocking porque la firma no es suspend y se llama desde el ViewModel
+        if (useFirebase) return
         runBlocking { mutex.withLock { fetchedMerenderos.clear() } }
     }
 
     suspend fun getById(needId: String): NeedItem? {
+        if (useFirebase) return firebaseRepo.getById(needId)
         return mutex.withLock {
             needsByMerendero.values
                 .flatten()
@@ -91,14 +98,18 @@ object NeedRepositoryImpl : NeedRepository {
         }
     }
 
-    override suspend fun delete(needId: String): Result<Unit> =
-        ApiClient.deleteNeed(needId)
+    override suspend fun delete(needId: String): Result<Unit> {
+        if (useFirebase) return firebaseRepo.delete(needId)
+        return ApiClient.deleteNeed(needId)
+    }
 
     override suspend fun update(
         needId: String,
         req: UpdateNeedRequestDto
-    ): Result<Unit> = ApiClient.updateNeed(needId, req)
-
+    ): Result<Unit> {
+        if (useFirebase) return firebaseRepo.update(needId, req)
+        return ApiClient.updateNeed(needId, req)
+    }
 }
 
 private fun com.tnt.donarya.data.remote.dto.NeedItemDto.toDomain() = NeedItem(

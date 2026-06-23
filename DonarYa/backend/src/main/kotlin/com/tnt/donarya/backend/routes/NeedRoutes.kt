@@ -27,6 +27,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 import com.tnt.donarya.backend.models.DonationHistoryDto
 import com.tnt.donarya.backend.models.NeedHistoryDto
+import com.tnt.donarya.backend.service.FirebaseService
 
 fun Routing.needRoutes() {
     route("/api/needs") {
@@ -75,6 +76,22 @@ fun Routing.needRoutes() {
                     donorsOnWay = 0,
                     isCovered = false
                 )
+
+                // Enviar notificación push a todos los donantes
+                try {
+                    val merenderoName = transaction {
+                        Merenderos.selectAll().where { Merenderos.id eq merenderoId }.singleOrNull()?.get(Merenderos.name)
+                    } ?: "Un merendero"
+
+                    FirebaseService.sendToTopic(
+                        topic = "donors",
+                        title = "Nueva necesidad de $merenderoName",
+                        body = req.title
+                    )
+                } catch (e: Exception) {
+                    println("Error enviando notificación: ${e.message}")
+                }
+
                 call.respond(HttpStatusCode.Created, need)
             }
 

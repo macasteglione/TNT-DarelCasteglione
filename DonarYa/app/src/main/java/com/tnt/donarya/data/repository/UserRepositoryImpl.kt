@@ -13,6 +13,7 @@ import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.User
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.repository.UserRepository
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
@@ -57,6 +58,12 @@ object UserRepositoryImpl : UserRepository {
             storage.saveUsers(users)
             currentUser = newUser
             storage.saveLoggedUser(newUser.email)
+
+            // Suscribir a notificaciones si es DONANTE
+            if (newUser.rol == UserRole.DONANTE) {
+                FirebaseMessaging.getInstance().subscribeToTopic("donors")
+            }
+
             newUser
         }
     }
@@ -82,6 +89,12 @@ object UserRepositoryImpl : UserRepository {
             currentUser = user
             storage.saveLoggedUser(user.email)
             if (users.none { it.id == user.id }) users.add(user)
+
+            // Suscribir a notificaciones si es DONANTE
+            if (user.rol == UserRole.DONANTE) {
+                FirebaseMessaging.getInstance().subscribeToTopic("donors")
+            }
+
             user
         }
     }
@@ -89,6 +102,14 @@ object UserRepositoryImpl : UserRepository {
     override fun getCurrentUser(): User? = currentUser
 
     override fun logout() {
+        // Desuscribir de notificaciones
+        if (currentUser?.rol == UserRole.DONANTE) {
+            try {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic("donors")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
         currentUser = null
         TokenStorage.clear()
         storage.clearSession()
@@ -107,6 +128,16 @@ object UserRepositoryImpl : UserRepository {
     fun restoreSession(): User? {
         val email = storage.getLoggedUser()
         currentUser = users.find { it.email == email }
+
+        // Asegurar suscripción al restaurar sesión
+        if (currentUser?.rol == UserRole.DONANTE) {
+            try {
+                FirebaseMessaging.getInstance().subscribeToTopic("donors")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         return currentUser
     }
 

@@ -30,6 +30,28 @@ import androidx.compose.ui.unit.sp
 import com.tnt.donarya.domain.model.UrgencyLevel
 import com.tnt.donarya.domain.model.UserRole
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.fillMaxSize
+
+@Composable
+fun LoadingView(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = Color(0xFF40916C))
+            Spacer(modifier = Modifier.padding(8.dp))
+            Text(
+                "Cargando...",
+                color = Color(0xFF6B7280),
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
 @Composable
 fun UrgencyBadge(urgency: UrgencyLevel, modifier: Modifier = Modifier) {
     val (bgColor, textColor) = when (urgency) {

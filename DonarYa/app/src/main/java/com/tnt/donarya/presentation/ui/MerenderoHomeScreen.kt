@@ -64,6 +64,8 @@ import com.tnt.donarya.ui.components.UrgencyBadge
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.collectLatest
 
+import com.tnt.donarya.ui.components.LoadingView
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoHomeScreen(
@@ -102,12 +104,7 @@ fun MerenderoHomeScreen(
 
         when (uiState) {
             is MerenderoHomeUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Cargando...")
-                }
+                LoadingView()
             }
 
             is MerenderoHomeUiState.Success -> {

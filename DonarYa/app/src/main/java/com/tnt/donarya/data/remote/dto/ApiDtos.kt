@@ -118,7 +118,9 @@ data class UpdateProfileRequestDto(
     val email: String,
     val nombreComedor: String? = null,
     val whatsapp: String? = null,
-    val direccion: String? = null
+    val direccion: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 data class DonationHistoryDto(

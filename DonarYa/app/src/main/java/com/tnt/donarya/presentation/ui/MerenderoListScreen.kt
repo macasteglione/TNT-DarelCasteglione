@@ -57,6 +57,8 @@ import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.presentation.state.MerenderoListUiState
 import kotlinx.coroutines.flow.collectLatest
 
+import com.tnt.donarya.ui.components.LoadingView
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoListScreen(
@@ -203,10 +205,13 @@ fun MerenderoListScreen(
                     is MerenderoListUiState.Loading -> {
 
                         item {
-                            Text(
-                                "Cargando...",
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxHeight(0.7f)
+                                    .fillMaxWidth()
+                            ) {
+                                LoadingView()
+                            }
                         }
                     }
 

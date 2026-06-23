@@ -7,6 +7,7 @@ import com.tnt.donarya.backend.routes.authRoutes
 import com.tnt.donarya.backend.routes.merenderoRoutes
 import com.tnt.donarya.backend.routes.needRoutes
 import com.tnt.donarya.backend.routes.notificationRoutes
+import com.tnt.donarya.backend.service.FirebaseService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -44,6 +45,8 @@ fun Application.module() {
 
     DatabaseFactory.init()
     initDatabase()
+
+    FirebaseService.init()
 
     jwtAuthConfig()
 

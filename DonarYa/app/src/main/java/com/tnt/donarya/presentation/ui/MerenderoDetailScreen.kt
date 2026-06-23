@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -55,6 +56,14 @@ import com.tnt.donarya.ui.components.ItemChip
 import com.tnt.donarya.ui.components.UrgencyBadge
 import androidx.core.net.toUri
 import androidx.compose.runtime.LaunchedEffect
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,10 +176,10 @@ fun MerenderoDetailScreen(
                     item {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                "Necesitamos alimentos secos",
+                                need.title,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp,
-                                color = Color(0xFF111827)
+                                color = Color(0xFF1B4332)
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -215,35 +224,67 @@ fun MerenderoDetailScreen(
                             SectionTitle("Cómo llegar")
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Map placeholder
+                            // Live Map
+                            val merenderoPos = LatLng(merendero.latitude, merendero.longitude)
+                            val cameraPositionState = rememberCameraPositionState {
+                                position = CameraPosition.fromLatLngZoom(merenderoPos, 15f)
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(140.dp)
+                                    .height(200.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0xFFE8F5E9))
-                                    .clickable {
-                                        val address = "${merendero.address}, ${merendero.neighborhood}"
-                                        val uri = "geo:0,0?q=${Uri.encode(address)}".toUri()
+                            ) {
+                                GoogleMap(
+                                    modifier = Modifier.fillMaxSize(),
+                                    cameraPositionState = cameraPositionState,
+                                    properties = MapProperties(isMyLocationEnabled = false),
+                                    uiSettings = MapUiSettings(
+                                        zoomControlsEnabled = false,
+                                        myLocationButtonEnabled = false,
+                                        scrollGesturesEnabled = false,
+                                        zoomGesturesEnabled = false,
+                                        rotationGesturesEnabled = false,
+                                        tiltGesturesEnabled = false
+                                    ),
+                                    onMapClick = {
+                                        val lat = merendero.latitude
+                                        val lng = merendero.longitude
+                                        val uri = if (lat != 0.0 && lng != 0.0) {
+                                            "geo:$lat,$lng?q=$lat,$lng(Merendero ${merendero.name})".toUri()
+                                        } else {
+                                            val address = "${merendero.address}, ${merendero.neighborhood}"
+                                            "geo:0,0?q=${Uri.encode(address)}".toUri()
+                                        }
+
                                         val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                             setPackage("com.google.android.apps.maps")
                                         }
                                         context.startActivity(intent)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.Default.Map,
-                                        contentDescription = null,
-                                        tint = Color(0xFF40916C),
-                                        modifier = Modifier.size(40.dp)
+                                    }
+                                ) {
+                                    Marker(
+                                        state = rememberMarkerState(position = merenderoPos),
+                                        title = merendero.name
                                     )
+                                }
+
+                                // Overlay info
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(12.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White
+                                ) {
                                     Text(
                                         "${merendero.distanceKm} km · ~${merendero.walkMinutes} min caminando",
-                                        color = Color(0xFF40916C),
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        color = Color(0xFF1B4332),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }

@@ -33,4 +33,7 @@ dependencies {
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+
+    // Firebase Admin SDK
+    implementation("com.google.firebase:firebase-admin:9.5.0")
 }
