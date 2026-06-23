@@ -3,11 +3,15 @@ package com.tnt.donarya.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -20,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tnt.donarya.domain.model.UrgencyLevel
@@ -68,9 +73,11 @@ fun ItemChip(text: String, modifier: Modifier = Modifier) {
 fun DonarYaBottomBar(
     role: UserRole,
     currentRoute: String,
+    unreadNotifications: Int = 0,
     onHome: () -> Unit,
     onDonar: () -> Unit,
-    onPerfil: () -> Unit
+    onPerfil: () -> Unit,
+    onNotifications: () -> Unit
 ) {
     NavigationBar(
         containerColor = Color.White,
@@ -111,6 +118,43 @@ fun DonarYaBottomBar(
                 )
             )
         }
+        NavigationBarItem(
+            selected = currentRoute == "notifications",
+            onClick = onNotifications,
+            icon = {
+                Box {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notificaciones"
+                    )
+                    if (unreadNotifications > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-2).dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE63946)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (unreadNotifications > 9) "9+" else "$unreadNotifications",
+                                fontSize = 10.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            },
+            label = { Text("Notificaciones") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color(0xFF40916C),
+                selectedTextColor = Color(0xFF40916C),
+                indicatorColor = Color(0xFFD8F3DC)
+            )
+        )
         NavigationBarItem(
             selected = currentRoute == "profile",
             onClick = onPerfil,

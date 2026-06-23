@@ -12,10 +12,7 @@ import io.ktor.http.*
 import io.ktor.serialization.gson.*
 import com.tnt.donarya.BuildConfig
 object ApiClient {
-    private val BASE_URL = if (BuildConfig.DEBUG)
-        "http://192.168.0.10:8080/api"   // teléfono físico
-    else
-        "http://10.0.2.2:8080/api"        // emulador
+    private val BASE_URL = BuildConfig.API_BASE_URL
 
     private val gson = Gson()
 
@@ -26,9 +23,9 @@ object ApiClient {
             gson(contentType = ContentType.Application.Json)
         }
         install(io.ktor.client.plugins.HttpTimeout) {
-            requestTimeoutMillis = 15000   // 15 segundos
-            connectTimeoutMillis = 10000   // 10 segundos
-            socketTimeoutMillis  = 15000   // 15 segundos
+            requestTimeoutMillis = 60000   // 60s (Render free tier cold start)
+            connectTimeoutMillis = 30000   // 30s
+            socketTimeoutMillis  = 60000   // 60s
         }
     }
 
@@ -142,5 +139,57 @@ object ApiClient {
             setBody(gson.toJson(req))
         }
         response.ensureSuccess()
+    }
+
+    // Notifications
+    suspend fun getNotifications(): Result<List<NotificationDto>> = runCatching {
+        val response = client.get("$BASE_URL/notifications") {
+            withAuth()
+        }
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), Array<NotificationDto>::class.java).toList()
+    }
+
+    suspend fun markNotificationRead(notiId: String): Result<Unit> = runCatching {
+        val response = client.put("$BASE_URL/notifications/$notiId/read") {
+            withAuth()
+        }
+        response.ensureSuccess()
+    }
+
+    suspend fun updateProfile(
+        req: UpdateProfileRequestDto
+    ): Result<UserDto> = runCatching {
+
+        val response = client.put("$BASE_URL/auth/me") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(gson.toJson(req))
+        }
+
+        response.ensureSuccess()
+
+        gson.fromJson(
+            response.bodyAsText(),
+            UserDto::class.java
+        )
+    }
+
+    suspend fun getDonationHistory(): Result<List<DonationHistoryDto>> = runCatching {
+        val url = "$BASE_URL/needs/donations/history"
+        val response = client.get(url) {
+            withAuth()
+        }
+
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), Array<DonationHistoryDto>::class.java).toList()
+    }
+
+    suspend fun getNeedsHistory(): Result<List<NeedHistoryDto>> = runCatching {
+        val response = client.get("$BASE_URL/needs/history") {
+            withAuth()
+        }
+        response.ensureSuccess()
+        gson.fromJson(response.bodyAsText(), Array<NeedHistoryDto>::class.java).toList()
     }
 }

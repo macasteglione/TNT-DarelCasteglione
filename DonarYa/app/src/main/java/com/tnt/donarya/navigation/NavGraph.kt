@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 
@@ -17,6 +18,7 @@ import com.tnt.donarya.presentation.ui.OnboardingScreen
 import com.tnt.donarya.presentation.ui.ProfileScreen
 import com.tnt.donarya.presentation.ui.PublishNeedScreen
 import com.tnt.donarya.presentation.ui.RegisterScreen
+import com.tnt.donarya.presentation.ui.NotificationsScreen
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String) {
@@ -76,7 +78,10 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         restoreState = true
                     }
                 },
-                role = role
+                role = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
             )
         }
 
@@ -121,7 +126,10 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         restoreState = true
                     }
                 },
-                role = role
+                role = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
             )
         }
 
@@ -146,7 +154,34 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         launchSingleTop = true
                     }
                 },
-                roleEnum = role
+                onEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
+                roleEnum = role,
+                onNotifications = {
+                    navController.navigate(Screen.Notifications.route)
+                }
+            )
+        }
+
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.EditProfile.route) {
+            val user = UserRepositoryImpl.getCurrentUser()
+            RegisterScreen(
+                isEditMode = true,
+                rolInicial = user?.rol,
+                initialNombre = user?.nombre ?: "",
+                initialEmail = user?.email ?: "",
+                initialNombreComedor = user?.nombreComedor ?: "",
+                initialWhatsapp = user?.whatsapp ?: "",
+                initialDireccion = user?.direccion ?: "",
+                onRegisterSuccess = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
 

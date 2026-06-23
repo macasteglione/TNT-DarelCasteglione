@@ -62,7 +62,8 @@ import kotlinx.coroutines.flow.collectLatest
 fun MerenderoListScreen(
     onNeedClick: (String) -> Unit,
     onPerfil: () -> Unit,
-    role: UserRole = UserRole.DONANTE
+    role: UserRole = UserRole.DONANTE,
+    onNotifications: () -> Unit = {}
 ) {
 
     val viewModel: MerenderoListViewModel = viewModel()
@@ -105,7 +106,8 @@ fun MerenderoListScreen(
                     currentRoute = "merendero_list",
                     onHome = {},
                     onDonar = {},
-                    onPerfil = onPerfil
+                    onPerfil = onPerfil,
+                    onNotifications = onNotifications
                 )
             },
             containerColor = Color(0xFFF9FAFB)

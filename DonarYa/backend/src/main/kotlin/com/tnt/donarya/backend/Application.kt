@@ -6,6 +6,7 @@ import com.tnt.donarya.backend.middleware.jwtAuthConfig
 import com.tnt.donarya.backend.routes.authRoutes
 import com.tnt.donarya.backend.routes.merenderoRoutes
 import com.tnt.donarya.backend.routes.needRoutes
+import com.tnt.donarya.backend.routes.notificationRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -19,7 +20,8 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 
 fun main() {
-    embeddedServer(Netty, port = 8080, module = Application::module).start(wait = true)
+    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    embeddedServer(Netty, port = port, module = Application::module).start(wait = true)
 }
 
 fun Application.module() {
@@ -49,5 +51,6 @@ fun Application.module() {
         authRoutes()
         merenderoRoutes()
         needRoutes()
+        notificationRoutes()
     }
 }

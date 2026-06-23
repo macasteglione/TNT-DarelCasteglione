@@ -30,9 +30,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -41,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.DonationRecord
 import com.tnt.donarya.domain.model.NeedType
@@ -51,6 +54,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.runtime.setValue
+import com.tnt.donarya.data.remote.dto.DonationHistoryDto
+import com.tnt.donarya.data.remote.dto.NeedHistoryDto
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,13 +70,29 @@ fun ProfileScreen(
     onHome: () -> Unit,
     onDonar: () -> Unit,
     onLogout: () -> Unit,
-    roleEnum: UserRole = UserRole.DONANTE
+    onEditProfile: () -> Unit = {},
+    roleEnum: UserRole = UserRole.DONANTE,
+    onNotifications: () -> Unit = {}
 ) {
 
     val viewModel: ProfileViewModel = viewModel()
     val profileData by viewModel.profileData.collectAsState()
     val user      = profileData.user
     val merendero = profileData.merendero
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh()
+        }
+    }
+
+    // Para el historial
+    val donationsCount = profileData.donationHistory.size
+    val merenderosHelped = profileData.donationHistory
+        .map { it.merenderoName }
+        .distinct()
+        .size
 
     // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
     val initials = user?.nombre
@@ -76,6 +102,8 @@ fun ProfileScreen(
         ?.joinToString("") { it.first().uppercase() }
         ?: "?"
 
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         bottomBar = {
             DonarYaBottomBar(
@@ -83,7 +111,8 @@ fun ProfileScreen(
                 currentRoute = "profile",
                 onHome = onHome,
                 onDonar = onDonar,
-                onPerfil = {}
+                onPerfil = {},
+                onNotifications = onNotifications
             )
         },
         containerColor = Color(0xFFF9FAFB)
@@ -113,16 +142,52 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            IconButton(onClick = {
-                                UserRepositoryImpl.logout()
-                                onLogout()
-                            }
-                            ) {
-                                Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "Ajustes",
-                                    tint = Color.White
-                                )
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Ajustes",
+                                        tint = Color.White
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Editar perfil") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Person,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            onEditProfile()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Cerrar sesión",
+                                                color = Color(0xFFE53935)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.ExitToApp,
+                                                contentDescription = null,
+                                                tint = Color(0xFFE53935)
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            UserRepositoryImpl.logout()
+                                            onLogout()
+                                        }
+                                    )
+                                }
                             }
                         }
                         Box(
@@ -181,41 +246,30 @@ fun ProfileScreen(
                             if (user?.rol == UserRole.MERENDERO) {
 
                                 ImpactStat(
-                                    "${merendero?.kidsCount ?: user?.cantidadChicos ?: 0}",
-                                    "chicos\natendidos",
+                                    "$donationsCount",
+                                    "necesidades\ncompletadas",
                                     null
                                 )
 
                                 ImpactStat(
-                                    "${merendero?.activeNeeds ?: 0}",
-                                    "necesidades\nactivas",
-                                    "+1 hoy"
-                                )
-
-                                ImpactStat(
-                                    "${merendero?.coveredNeeds ?: 0}",
-                                    "donaciones\nrecibidas",
+                                    "$merenderosHelped",
+                                    "merenderos\nayudados",
                                     null
                                 )
 
                             } else {
 
                                 ImpactStat(
-                                    "${user?.donationsCount ?: 0}",
-                                    "donaciones",
-                                    "+5 este mes"
-                                )
-
-                                ImpactStat(
-                                    "${user?.mendecerosHelped ?: 0}",
-                                    "merenderos\nayudados",
+                                    "$donationsCount",
+                                    "necesidades\ncompletadas",
                                     null
                                 )
 
                                 ImpactStat(
-                                    "${user?.beneficiados ?: 0}",
-                                    "beneficiados",
-                                    null)
+                                    "$merenderosHelped",
+                                    "merenderos\nayudados",
+                                    null
+                                )
                             }
                         }
                     }
@@ -297,8 +351,31 @@ fun ProfileScreen(
                     }
                 }
 
-                items(user?.recentDonations ?: emptyList()) {
-                    donation -> DonationRow(donation) }
+                items(profileData.donationHistory) { donation ->
+                    DonationHistoryRow(donation)
+                }
+            }
+            if (user?.rol == UserRole.MERENDERO) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Necesidades completadas",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF111827)
+                        )
+                    }
+                }
+
+                items(profileData.needsHistory) { need ->
+                    NeedHistoryRow(need)
+                }
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -325,15 +402,7 @@ fun ImpactStat(value: String, label: String, extra: String?) {
 }
 
 @Composable
-fun DonationRow(donation: DonationRecord) {
-    val (emoji, color) = when (donation.type) {
-        NeedType.ALIMENTOS -> "🍞" to Color(0xFFF4A261)
-        NeedType.ROPA -> "👕" to Color(0xFF60A5FA)
-        NeedType.GAS -> "🔥" to Color(0xFFE63946)
-        NeedType.ABRIGO -> "🧥" to Color(0xFF8B5CF6)
-        NeedType.OTROS -> "📦" to Color(0xFF6B7280)
-    }
-
+fun DonationHistoryRow(donation: DonationHistoryDto) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -344,15 +413,19 @@ fun DonationRow(donation: DonationRecord) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.12f)),
+                .background(Color(0xFF40916C).copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(emoji, fontSize = 18.sp)
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF40916C)
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                donation.type.label,
+                donation.needTitle,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
                 color = Color(0xFF111827)
@@ -363,21 +436,43 @@ fun DonationRow(donation: DonationRecord) {
                 color = Color(0xFF6B7280)
             )
         }
-        if (donation.delivered) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFF40916C),
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    " Entregado",
-                    fontSize = 12.sp,
-                    color = Color(0xFF40916C),
-                    fontWeight = FontWeight.Medium
-                )
-            }
+    }
+    Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))
+}
+@Composable
+fun NeedHistoryRow(need: NeedHistoryDto) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF40916C).copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF40916C)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                need.title,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = Color(0xFF111827)
+            )
+            Text(
+                "Cubierta hace ${need.daysAgo} días",
+                fontSize = 12.sp,
+                color = Color(0xFF6B7280)
+            )
         }
     }
     Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))

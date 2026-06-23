@@ -17,12 +17,16 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 import com.tnt.donarya.backend.database.DonorConfirmations
+import com.tnt.donarya.backend.database.Notifications
 import com.tnt.donarya.backend.models.ConfirmNeedResponse
 import com.tnt.donarya.backend.models.UpdateNeedRequest
+import com.tnt.donarya.backend.database.Users
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
+import com.tnt.donarya.backend.models.DonationHistoryDto
+import com.tnt.donarya.backend.models.NeedHistoryDto
 
 fun Routing.needRoutes() {
     route("/api/needs") {
@@ -89,11 +93,31 @@ fun Routing.needRoutes() {
                 val merenderoId = merenderoRow[Merenderos.id]
                 if (needRow[Needs.merenderoId] != merenderoId) return@put call.respond(HttpStatusCode.Forbidden)
 
+                val needTitle = needRow[Needs.title]
                 transaction {
                     Needs.update({ Needs.id eq needId }) {
                         it[Needs.isCovered] = true
                     }
                     exec("UPDATE merenderos SET active_needs = GREATEST(active_needs - 1, 0), covered_needs = covered_needs + 1 WHERE id = ?", listOf(Merenderos.id.columnType to merenderoId))
+
+                    val confirmingDonors = DonorConfirmations.selectAll()
+                        .where { DonorConfirmations.needId eq needId }
+                        .map { it[DonorConfirmations.donorId] }
+
+                    val now = LocalDateTime.now()
+                    confirmingDonors.forEachIndexed { i, donorId ->
+                        val nid = "noti_${System.currentTimeMillis()}_$i"
+                        Notifications.insert {
+                            it[Notifications.id] = nid
+                            it[Notifications.userId] = donorId
+                            it[Notifications.type] = "NECESIDAD_CUBIERTA"
+                            it[Notifications.message] = "La necesidad \"$needTitle\" fue marcada como cubierta"
+                            it[Notifications.relatedNeedId] = needId
+                            it[Notifications.relatedUserId] = userId
+                            it[Notifications.isRead] = false
+                            it[Notifications.createdAt] = now
+                        }
+                    }
                 }
                 call.respond(HttpStatusCode.OK, mapOf("ok" to true))
             }
@@ -158,6 +182,29 @@ fun Routing.needRoutes() {
                     Needs.selectAll()
                         .where { Needs.id eq needId }
                         .single()[Needs.donorsOnWay]
+                }
+
+                val needTitle = needRow[Needs.title]
+                val donorNombre = transaction {
+                    Users.selectAll().where { Users.id eq userId }.singleOrNull()?.get(Users.nombre)
+                }
+                val notiId = "noti_${System.currentTimeMillis()}"
+                transaction {
+                    val merenderoUserId = Merenderos.selectAll()
+                        .where { Merenderos.id eq needRow[Needs.merenderoId] }
+                        .singleOrNull()?.get(Merenderos.userId)
+                    if (merenderoUserId != null) {
+                        Notifications.insert {
+                            it[Notifications.id] = notiId
+                            it[Notifications.userId] = merenderoUserId
+                            it[Notifications.type] = "DONANTE_CONFIRMADO"
+                            it[Notifications.message] = "${donorNombre ?: "Un donante"} confirmó que va a ayudar con \"$needTitle\""
+                            it[Notifications.relatedNeedId] = needId
+                            it[Notifications.relatedUserId] = userId
+                            it[Notifications.isRead] = false
+                            it[Notifications.createdAt] = LocalDateTime.now()
+                        }
+                    }
                 }
 
                 call.respond(
@@ -309,6 +356,73 @@ fun Routing.needRoutes() {
                     HttpStatusCode.OK,
                     mapOf("ok" to true)
                 )
+            }
+
+            // Historial del DONANTE — todas sus confirmaciones ya cubiertas
+            get("/donations/history") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.subject
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+
+                val historial = transaction {
+
+                    val rows = DonorConfirmations
+                        .innerJoin(Needs, { DonorConfirmations.needId }, { Needs.id })
+                        .innerJoin(Merenderos, { Needs.merenderoId }, { Merenderos.id })
+                        .selectAll()
+                        .where {
+                            (DonorConfirmations.donorId eq userId) and
+                                    (Needs.isCovered eq true)
+                        }
+
+                    rows.map { row ->
+
+                        println(
+                            "donor=${row[DonorConfirmations.donorId]}, " +
+                                    "need=${row[Needs.id]}, " +
+                                    "covered=${row[Needs.isCovered]}"
+                        )
+
+                        DonationHistoryDto(
+                            needTitle = row[Needs.title],
+                            needType = row[Needs.type],
+                            merenderoName = row[Merenderos.name],
+                            daysAgo = java.time.Duration.between(
+                                row[Needs.createdAt],
+                                LocalDateTime.now()
+                            ).toDays().toInt()
+                        )
+                    }
+                }
+
+                call.respond(HttpStatusCode.OK, historial)
+            }// Historial del MERENDERO — todas sus necesidades cubiertas
+            get("/history") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.subject
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+                val merenderoRow = transaction {
+                    Merenderos.selectAll().where { Merenderos.userId eq userId }.singleOrNull()
+                } ?: return@get call.respond(HttpStatusCode.Forbidden)
+
+                val historial = transaction {
+                    Needs.selectAll()
+                        .where {
+                            (Needs.merenderoId eq merenderoRow[Merenderos.id]) and
+                                    (Needs.isCovered eq true)
+                        }
+                        .map { row ->
+                            NeedHistoryDto(
+                                title = row[Needs.title],
+                                type = row[Needs.type],
+                                daysAgo = java.time.Duration.between(
+                                    row[Needs.createdAt],
+                                    LocalDateTime.now()
+                                ).toDays().toInt()
+                            )
+                        }
+                }
+                call.respond(HttpStatusCode.OK, historial)
             }
         }
     }

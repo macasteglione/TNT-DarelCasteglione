@@ -1,5 +1,6 @@
 package com.tnt.donarya.domain.repository
 
+import com.tnt.donarya.data.remote.dto.UpdateProfileRequestDto
 import com.tnt.donarya.domain.model.User
 
 interface UserRepository {
@@ -7,4 +8,6 @@ interface UserRepository {
     fun login(email: String, password: String): Result<User>
     fun getCurrentUser(): User?
     fun logout()
+
+    suspend fun updateProfile(req: UpdateProfileRequestDto): Result<User>
 }

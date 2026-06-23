@@ -30,7 +30,10 @@ data class UserDto(
     val nombreComedor: String? = null,
     val whatsapp: String? = null,
     val direccion: String? = null,
-    val merenderoId: String? = null
+    val merenderoId: String? = null,
+    val donationsCount: Int = 0,
+    val mendecerosHelped: Int = 0,
+    val beneficiados: Int = 0
 )
 
 data class MerenderoDto(
@@ -97,4 +100,36 @@ data class UpdateNeedRequestDto(
     val type: String,
     val urgency: String,
     val items: List<String>
+)
+
+data class NotificationDto(
+    val id: String,
+    val userId: String,
+    val type: String,
+    val message: String,
+    val relatedNeedId: String? = null,
+    val relatedUserId: String? = null,
+    val isRead: Boolean = false,
+    val createdAt: String
+)
+
+data class UpdateProfileRequestDto(
+    val nombre: String,
+    val email: String,
+    val nombreComedor: String? = null,
+    val whatsapp: String? = null,
+    val direccion: String? = null
+)
+
+data class DonationHistoryDto(
+    val needTitle: String,
+    val needType: String,
+    val merenderoName: String,
+    val daysAgo: Int
+)
+
+data class NeedHistoryDto(
+    val title: String,
+    val type: String,
+    val daysAgo: Int
 )

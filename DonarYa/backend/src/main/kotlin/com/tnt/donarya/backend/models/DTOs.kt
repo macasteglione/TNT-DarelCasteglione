@@ -37,7 +37,10 @@ data class UserDto(
     val nombreComedor: String? = null,
     val whatsapp: String? = null,
     val direccion: String? = null,
-    val merenderoId: String? = null
+    val merenderoId: String? = null,
+    val donationsCount: Int = 0,
+    val mendecerosHelped: Int = 0,
+    val beneficiados: Int = 0
 )
 
 @Serializable
@@ -119,4 +122,40 @@ data class UpdateNeedRequest(
     val type: String,
     val urgency: String,
     val items: List<String>
+)
+
+@Serializable
+data class NotificationDto(
+    val id: String,
+    val userId: String,
+    val type: String,
+    val message: String,
+    val relatedNeedId: String? = null,
+    val relatedUserId: String? = null,
+    val isRead: Boolean = false,
+    val createdAt: String
+)
+
+@Serializable
+data class UpdateProfileRequest(
+    val nombre: String,
+    val email: String,
+    val nombreComedor: String? = null,
+    val whatsapp: String? = null,
+    val direccion: String? = null
+)
+
+@Serializable
+data class DonationHistoryDto(
+    val needTitle: String,
+    val needType: String,
+    val merenderoName: String,
+    val daysAgo: Int
+)
+
+@Serializable
+data class NeedHistoryDto(
+    val title: String,
+    val type: String,
+    val daysAgo: Int
 )
