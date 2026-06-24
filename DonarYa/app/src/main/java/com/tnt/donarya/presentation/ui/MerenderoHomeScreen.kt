@@ -19,16 +19,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -44,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,20 +57,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.GlobalNotificationObserver
 import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.MerenderoHomeUiState
 import com.tnt.donarya.presentation.viewmodel.MerenderoHomeViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 import com.tnt.donarya.ui.components.UrgencyBadge
-import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoHomeScreen(
     onPublishNeed: () -> Unit,
-    onEditNeed: (String) -> Unit,
     onPerfil: () -> Unit,
     role: UserRole = UserRole.MERENDERO,
     onNotifications: () -> Unit = {}
@@ -80,6 +81,7 @@ fun MerenderoHomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val pullState = rememberPullToRefreshState()
     val isRefreshing = uiState is MerenderoHomeUiState.Loading
+    val unreadCount by GlobalNotificationObserver.unreadCount.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.LaunchedEffect(lifecycleOwner) {
@@ -94,80 +96,89 @@ fun MerenderoHomeScreen(
         }
     }
 
-    PullToRefreshBox(
-        state = pullState,
-        isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refresh() }
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            DonarYaBottomBar(
+                role = role,
+                currentRoute = "merendero_home",
+                unreadNotifications = unreadCount,
+                onHome = {},
+                onDonar = {},
+                onPerfil = onPerfil,
+                onNotifications = onNotifications
+            )
+        },
+        containerColor = Color(0xFFF9FAFB)
+    ) { padding ->
+        PullToRefreshBox(
+            state = pullState,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.padding(padding)
+        ) {
 
-        when (uiState) {
-            is MerenderoHomeUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Cargando...")
-                }
-            }
-
-            is MerenderoHomeUiState.Success -> {
-                val state = uiState as MerenderoHomeUiState.Success
-                val merendero = state.merendero
-                val needs = state.activeNeeds
-                val coveredNeeds = state.coveredNeeds
-
-                val initials = merendero.name
-                    .split(" ")
-                    .filter { it.isNotBlank() }
-                    .take(2)
-                    .joinToString("") { it.first().uppercase() }
-
-                if (needToDelete != null) {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { needToDelete = null },
-                        title = { Text("¿Eliminar necesidad?") },
-                        text = {
-                            Text(
-                                "Se eliminará \"${needToDelete!!.title}\".\nEsta acción no se puede deshacer."
-                            )
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    viewModel.eliminarNecesidad(needToDelete!!.id)
-                                    needToDelete = null
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFE63946)
-                                )
-                            ) { Text("Eliminar") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { needToDelete = null }) {
-                                Text("Cancelar", color = Color(0xFF40916C))
-                            }
-                        }
-                    )
+            when (uiState) {
+                is MerenderoHomeUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize())
                 }
 
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    bottomBar = {
-                        DonarYaBottomBar(
-                            role = role,
-                            currentRoute = "merendero_home",
-                            onHome = {},
-                            onDonar = {},
-                            onPerfil = onPerfil,
-                            onNotifications = onNotifications
+                is MerenderoHomeUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            (uiState as MerenderoHomeUiState.Error).message,
+                            color = Color.Red,
+                            modifier = Modifier.padding(16.dp)
                         )
-                    },
-                    containerColor = Color(0xFFF9FAFB)
-                ) { padding ->
+                    }
+                }
+
+                is MerenderoHomeUiState.Success -> {
+                    val state = uiState as MerenderoHomeUiState.Success
+                    val merendero = state.merendero
+                    val needs = state.activeNeeds
+                    val coveredNeeds = state.coveredNeeds
+
+                    val initials = merendero.name
+                        .split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .joinToString("") { it.first().uppercase() }
+
+                    if (needToDelete != null) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { needToDelete = null },
+                            title = { Text("¿Eliminar necesidad?") },
+                            text = {
+                                Text(
+                                    "Se eliminará \"${needToDelete!!.title}\".\nEsta acción no se puede deshacer."
+                                )
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        viewModel.eliminarNecesidad(needToDelete!!.id)
+                                        needToDelete = null
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFE63946)
+                                    )
+                                ) { Text("Eliminar") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { needToDelete = null }) {
+                                    Text("Cancelar", color = Color(0xFF40916C))
+                                }
+                            }
+                        )
+                    }
+
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(padding)
                     ) {
                         item {
                             Box(
@@ -238,11 +249,9 @@ fun MerenderoHomeScreen(
                                     .padding(horizontal = 20.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                MerenderoStat("${merendero.activeNeeds}", "Activas")
+                                MerenderoStat("${state.activeNeeds.size}", "Activas")
                                 VerticalDivider()
-                                MerenderoStat("${merendero.coveredNeeds}", "Cubiertas")
-                                VerticalDivider()
-                                MerenderoStat("${merendero.kidsCount}", "Chicos")
+                                MerenderoStat("${state.coveredNeeds.size}", "Cubiertas")
                             }
                         }
 
@@ -285,7 +294,6 @@ fun MerenderoHomeScreen(
                         items(needs) { need ->
                             NeedManageCard(
                                 need = need,
-                                onEdit = onEditNeed,
                                 onDelete = { needToDelete = need },
                                 onMarkCovered = { viewModel.marcarComoCubierta(need.id) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
@@ -342,8 +350,9 @@ fun MerenderoHomeScreen(
                                         )
                                     }
                                 }
-                                Divider(
+                                HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 20.dp),
+                                    thickness = DividerDefaults.Thickness,
                                     color = Color(0xFFF3F4F6)
                                 )
                             }
@@ -367,15 +376,22 @@ fun RowScope.MerenderoStat(value: String, label: String) {
 
 @Composable
 fun VerticalDivider() {
-    Divider(
+    HorizontalDivider(
         modifier = Modifier
             .width(1.dp)
-            .height(36.dp), color = Color.White.copy(alpha = 0.2f)
+            .height(36.dp),
+        thickness = DividerDefaults.Thickness,
+        color = Color.White.copy(alpha = 0.2f)
     )
 }
 
 @Composable
-fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Unit, onMarkCovered: () -> Unit, modifier: Modifier = Modifier) {
+fun NeedManageCard(
+    need: NeedItem,
+    onDelete: () -> Unit,
+    onMarkCovered: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -415,7 +431,7 @@ fun NeedManageCard(need: NeedItem, onEdit: (String) -> Unit, onDelete: () -> Uni
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.DirectionsWalk,
+                        Icons.AutoMirrored.Filled.DirectionsWalk,
                         contentDescription = null,
                         tint = Color(0xFF40916C),
                         modifier = Modifier.size(14.dp)

@@ -2,18 +2,17 @@ package com.tnt.donarya.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tnt.donarya.data.remote.ApiClient
-import com.tnt.donarya.data.remote.dto.UpdateNeedRequestDto
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.NeedRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.Merendero
 import com.tnt.donarya.domain.usecase.MarkNeedCoveredUseCase
 import com.tnt.donarya.presentation.state.MerenderoHomeUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MerenderoHomeViewModel : ViewModel() {
@@ -23,7 +22,6 @@ class MerenderoHomeViewModel : ViewModel() {
     private val markNeedCoveredUseCase = MarkNeedCoveredUseCase(needRepository)
 
     private val _actionState = MutableStateFlow<ActionState>(ActionState.Idle)
-    val actionState: StateFlow<ActionState> = _actionState
 
 
     private val _notificacion = MutableSharedFlow<String>()
@@ -33,7 +31,7 @@ class MerenderoHomeViewModel : ViewModel() {
     private val donorsSnapshot = mutableMapOf<String, Int>()
 
     sealed class ActionState {
-        object Idle    : ActionState()
+        object Idle : ActionState()
         object Loading : ActionState()
         object Success : ActionState()
         data class Error(val message: String) : ActionState()
@@ -45,12 +43,13 @@ class MerenderoHomeViewModel : ViewModel() {
     )
     val uiState: StateFlow<MerenderoHomeUiState> = _uiState
 
-    init { cargar() }
+    init {
+        cargar()
+    }
 
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             val merenderoId = UserRepositoryImpl.getCurrentUser()?.merenderoId ?: return@launch
-            NeedRepositoryImpl.invalidateCache()
             val needs = NeedRepositoryImpl.getByMerendero(merenderoId)
 
             // Detectar donantes nuevos
@@ -73,12 +72,18 @@ class MerenderoHomeViewModel : ViewModel() {
 
     private fun cargar() {
         viewModelScope.launch(Dispatchers.IO) {
-            val currentUser = UserRepositoryImpl.getCurrentUser()
-            val merenderoId = currentUser?.merenderoId
-            if (merenderoId != null) {
-                actualizarEstado(merenderoId)
-            } else {
-                _uiState.value = MerenderoHomeUiState.Loading
+            try {
+                val currentUser = UserRepositoryImpl.getCurrentUser()
+                val merenderoId = currentUser?.merenderoId
+                if (merenderoId != null) {
+                    actualizarEstado(merenderoId)
+                } else {
+                    _uiState.value = MerenderoHomeUiState.Loading
+                }
+            } catch (e: Exception) {
+                _uiState.value = MerenderoHomeUiState.Error(
+                    e.message ?: "Error al cargar datos"
+                )
             }
         }
     }
@@ -89,47 +94,75 @@ class MerenderoHomeViewModel : ViewModel() {
             val result = markNeedCoveredUseCase(needId)
             if (result.isSuccess) {
                 MerenderoRepositoryImpl.invalidateCache()
-                NeedRepositoryImpl.invalidateCache()
                 val currentUser = UserRepositoryImpl.getCurrentUser()
                 val merenderoId = currentUser?.merenderoId ?: return@launch
                 actualizarEstado(merenderoId)
                 _actionState.value = ActionState.Success
                 _notificacion.emit("Necesidad marcada como cubierta")
             } else {
-                _actionState.value = ActionState.Error(
-                    result.exceptionOrNull()?.message ?: "Error al marcar como cubierta"
-                )
+                val msg = result.exceptionOrNull()?.message ?: "Error al marcar como cubierta"
+                _actionState.value = ActionState.Error(msg)
+                _notificacion.emit("❌ $msg")
             }
         }
     }
 
     private suspend fun actualizarEstado(merenderoId: String) {
-        val merendero = merenderoRepository.getById(merenderoId) ?: return
-        val needs = needRepository.getByMerendero(merenderoId)
+        try {
+            var merendero = merenderoRepository.getById(merenderoId)
+            if (merendero == null) {
+                val user = UserRepositoryImpl.getCurrentUser()
+                if (user != null) {
+                    val newMerendero = Merendero(
+                        id = merenderoId,
+                        name = user.nombreComedor ?: user.nombre,
+                        address = user.direccion ?: "",
+                        neighborhood = "",
+                        coordinator = user.nombre,
+                        whatsapp = user.whatsapp ?: "",
+                        kidsCount = 0,
+                        activeNeeds = 0,
+                        coveredNeeds = 0,
+                        isVerified = false,
+                        distanceKm = 0.0,
+                        walkMinutes = 0,
+                        latitude = 0.0,
+                        longitude = 0.0
+                    )
+                    merenderoRepository.add(newMerendero)
+                    merendero = newMerendero
+                }
+            }
+            merendero = merendero ?: return
+            val needs = needRepository.getByMerendero(merenderoId)
 
-        // Inicializar snapshot solo la primera carga
-        needs.filter { !it.isCovered }.forEach { need ->
-            if (!donorsSnapshot.containsKey(need.id)) {
-                donorsSnapshot[need.id] = need.donorsOnWay
+            needs.filter { !it.isCovered }.forEach { need ->
+                if (!donorsSnapshot.containsKey(need.id)) {
+                    donorsSnapshot[need.id] = need.donorsOnWay
+                }
+            }
+
+            _uiState.value = MerenderoHomeUiState.Success(
+                merendero = merendero,
+                activeNeeds = needs.filter { !it.isCovered },
+                coveredNeeds = needs.filter { it.isCovered }
+            )
+        } catch (e: Exception) {
+            if (_uiState.value !is MerenderoHomeUiState.Success) {
+                _uiState.value = MerenderoHomeUiState.Error(
+                    e.message ?: "Error al cargar datos"
+                )
             }
         }
-
-        _uiState.value = MerenderoHomeUiState.Success(
-            merendero = merendero,
-            activeNeeds = needs.filter { !it.isCovered },
-            coveredNeeds = needs.filter { it.isCovered }
-        )
     }
 
     fun eliminarNecesidad(needId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _actionState.value = ActionState.Loading
-            val result = ApiClient.deleteNeed(needId)
+            val result = NeedRepositoryImpl.delete(needId)
             if (result.isSuccess) {
                 _actionState.value = ActionState.Success
                 val merenderoId = UserRepositoryImpl.getCurrentUser()?.merenderoId ?: return@launch
-                NeedRepositoryImpl.invalidateCache()           // ← agregar esto
-                NeedRepositoryImpl.refreshForMerendero(merenderoId)  // ← y esto
                 actualizarEstado(merenderoId)
             } else {
                 _actionState.value = ActionState.Error(

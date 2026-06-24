@@ -21,6 +21,7 @@ class LoginViewModel : ViewModel() {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = LoginUiState.Loading
             val result = repository.login(email, password)
             _uiState.value = if (result.isSuccess) LoginUiState.Success(result.getOrThrow())
             else LoginUiState.Error("Usuario o contraseña incorrectos")

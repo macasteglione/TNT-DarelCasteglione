@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -29,6 +28,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tnt.donarya.domain.model.UrgencyLevel
 import com.tnt.donarya.domain.model.UserRole
+
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.fillMaxSize
+
+@Composable
+fun LoadingView(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = Color(0xFF40916C))
+            Spacer(modifier = Modifier.padding(8.dp))
+            Text(
+                "Cargando...",
+                color = Color(0xFF6B7280),
+                fontSize = 14.sp
+            )
+        }
+    }
+}
 
 @Composable
 fun UrgencyBadge(urgency: UrgencyLevel, modifier: Modifier = Modifier) {
@@ -97,6 +118,8 @@ fun DonarYaBottomBar(
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF40916C),
                     selectedTextColor = Color(0xFF40916C),
+                    unselectedIconColor = Color(0xFF111827),
+                    unselectedTextColor = Color(0xFF111827),
                     indicatorColor = Color(0xFFD8F3DC)
                 )
             )
@@ -106,14 +129,16 @@ fun DonarYaBottomBar(
                 onClick = onDonar,
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Donar"
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Inicio"
                     )
                 },
-                label = { Text("Donar") },
+                label = { Text("Inicio") },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF40916C),
                     selectedTextColor = Color(0xFF40916C),
+                    unselectedIconColor = Color(0xFF111827),
+                    unselectedTextColor = Color(0xFF111827),
                     indicatorColor = Color(0xFFD8F3DC)
                 )
             )
@@ -152,6 +177,8 @@ fun DonarYaBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF40916C),
                 selectedTextColor = Color(0xFF40916C),
+                unselectedIconColor = Color(0xFF111827),
+                unselectedTextColor = Color(0xFF111827),
                 indicatorColor = Color(0xFFD8F3DC)
             )
         )
@@ -168,6 +195,8 @@ fun DonarYaBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF40916C),
                 selectedTextColor = Color(0xFF40916C),
+                unselectedIconColor = Color(0xFF111827),
+                unselectedTextColor = Color(0xFF111827),
                 indicatorColor = Color(0xFFD8F3DC)
             )
         )

@@ -3,15 +3,46 @@ package com.tnt.donarya.presentation.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -24,6 +55,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.GlobalNotificationObserver
+import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.RegisterUiState
 import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
@@ -32,31 +65,53 @@ import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 fun RegisterScreen(
     rolInicial: UserRole? = null,
     isEditMode: Boolean = false,
-    initialNombre: String = "",
-    initialEmail: String = "",
-    initialNombreComedor: String = "",
-    initialWhatsapp: String = "",
-    initialDireccion: String = "",
     onRegisterSuccess: (UserRole) -> Unit,
+    onOpenMap: () -> Unit,
     onBack: () -> Unit,
+    onAddressSelected: ((String) -> Unit) -> Unit = {},
     viewModel: RegisterViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val selectedLocation by viewModel.selectedLocation.collectAsState()
 
-    var nombre by remember { mutableStateOf(if (isEditMode) initialNombre else "") }
-    var email by remember { mutableStateOf(if (isEditMode) initialEmail else "") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var selectedRole by remember { mutableStateOf(rolInicial) }
-    // Campos extra merendero
-    var nombreComedor by remember { mutableStateOf(if (isEditMode) initialNombreComedor else "") }
-    var whatsapp by remember { mutableStateOf(if (isEditMode) initialWhatsapp else "") }
-    var direccion by remember { mutableStateOf(if (isEditMode) initialDireccion else "") }
+    val nombre by viewModel.nombre.collectAsState()
+    val email by viewModel.email.collectAsState()
+    val nombreComedor by viewModel.nombreComedor.collectAsState()
+    val whatsapp by viewModel.whatsapp.collectAsState()
+    val direccion by viewModel.direccion.collectAsState()
+    val selectedRole by viewModel.selectedRole.collectAsState()
+
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
     val suggestions by viewModel.addressSuggestions.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.resetState()
+        onAddressSelected { viewModel.direccion.value = it }
+        if (isEditMode) {
+            UserRepositoryImpl.getCurrentUser()?.let {
+                viewModel.initWithUser(it)
+            }
+        }
+    }
+
+    LaunchedEffect(rolInicial) {
+        if (selectedRole == null && rolInicial != null) {
+            viewModel.selectedRole.value = rolInicial
+        }
+    }
+
+    LaunchedEffect(selectedRole) {
+        if (selectedRole == UserRole.MERENDERO && direccion.isBlank() && !isEditMode) {
+            viewModel.fetchCurrentLocation()
+        }
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is RegisterUiState.Success) {
             val user = (uiState as RegisterUiState.Success).user
+            GlobalNotificationObserver.restartForCurrentUser()
             onRegisterSuccess(user.rol)
         }
     }
@@ -84,7 +139,11 @@ fun RegisterScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White
+                    )
                 }
                 Text(
                     if (isEditMode) "Editar perfil" else "Crear cuenta",
@@ -127,7 +186,7 @@ fun RegisterScreen(
                         emoji = "🏠",
                         selected = selectedRole == UserRole.MERENDERO,
                         modifier = Modifier.weight(1f),
-                        onClick = { selectedRole = UserRole.MERENDERO }
+                        onClick = { viewModel.selectedRole.value = UserRole.MERENDERO }
                     )
                     RoleCard(
                         title = "Soy\nDonante",
@@ -135,7 +194,7 @@ fun RegisterScreen(
                         emoji = "🤝",
                         selected = selectedRole == UserRole.DONANTE,
                         modifier = Modifier.weight(1f),
-                        onClick = { selectedRole = UserRole.DONANTE }
+                        onClick = { viewModel.selectedRole.value = UserRole.DONANTE }
                     )
                 }
 
@@ -156,7 +215,7 @@ fun RegisterScreen(
                     // Nombre
                     OutlinedTextField(
                         value = nombre,
-                        onValueChange = { nombre = it },
+                        onValueChange = { viewModel.nombre.value = it },
                         label = { Text("Nombre completo", color = Color.White.copy(alpha = 0.7f)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -169,8 +228,13 @@ fun RegisterScreen(
                     // Email
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Correo electrónico", color = Color.White.copy(alpha = 0.7f)) },
+                        onValueChange = { viewModel.email.value = it },
+                        label = {
+                            Text(
+                                "Correo electrónico",
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -210,7 +274,11 @@ fun RegisterScreen(
                         Column {
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Divider(color = Color.White.copy(alpha = 0.2f))
+                            HorizontalDivider(
+                                Modifier,
+                                DividerDefaults.Thickness,
+                                color = Color.White.copy(alpha = 0.2f)
+                            )
 
                             Spacer(modifier = Modifier.height(16.dp))
 
@@ -224,8 +292,13 @@ fun RegisterScreen(
 
                             OutlinedTextField(
                                 value = nombreComedor,
-                                onValueChange = { nombreComedor = it },
-                                label = { Text("Nombre del comedor *", color = Color.White.copy(alpha = 0.7f)) },
+                                onValueChange = { viewModel.nombreComedor.value = it },
+                                label = {
+                                    Text(
+                                        "Nombre del comedor *",
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = fieldColors(),
@@ -236,8 +309,13 @@ fun RegisterScreen(
 
                             OutlinedTextField(
                                 value = whatsapp,
-                                onValueChange = { whatsapp = it },
-                                label = { Text("WhatsApp *", color = Color.White.copy(alpha = 0.7f)) },
+                                onValueChange = { viewModel.whatsapp.value = it },
+                                label = {
+                                    Text(
+                                        "WhatsApp *",
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -248,34 +326,102 @@ fun RegisterScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Column {
-                                OutlinedTextField(
-                                    value = direccion,
-                                    onValueChange = {
-                                        direccion = it
-                                        viewModel.searchAddress(it)
-                                    },
-                                    label = { Text("Dirección", color = Color.White.copy(alpha = 0.7f)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    colors = fieldColors(),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    Column {
+                                        OutlinedTextField(
+                                            value = direccion,
+                                            onValueChange = {
+                                                viewModel.direccion.value = it
+                                                viewModel.searchAddress(it)
+                                            },
+                                            label = {
+                                                Text(
+                                                    "Dirección",
+                                                    color = Color.White.copy(alpha = 0.7f)
+                                                )
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            trailingIcon = {
+                                                IconButton(onClick = onOpenMap) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.LocationOn,
+                                                        contentDescription = "Seleccionar en mapa",
+                                                        tint = if (selectedLocation != null) Color(
+                                                            0xFFF48C06
+                                                        ) else Color.White.copy(alpha = 0.7f)
+                                                    )
+                                                }
+                                            },
+                                            colors = fieldColors(),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
 
-                                suggestions.forEach { suggestion ->
-                                    Text(
-                                        text = suggestion.displayName,
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        maxLines = 2,
+                                        if (selectedLocation != null) {
+                                            Text(
+                                                "Ubicación fijada en el mapa ✓",
+                                                color = Color(0xFFF48C06),
+                                                fontSize = 11.sp,
+                                                modifier = Modifier.padding(
+                                                    start = 4.dp,
+                                                    top = 4.dp
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+
+                                AnimatedVisibility(visible = suggestions.isNotEmpty()) {
+                                    Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable {
-                                                direccion = suggestion.displayName
-                                                viewModel.selectAddress(suggestion)
+                                            .padding(top = 4.dp)
+                                            .heightIn(max = 250.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color.White
+                                        ),
+                                        elevation = CardDefaults.cardElevation(8.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.verticalScroll(
+                                                rememberScrollState()
+                                            )
+                                        ) {
+                                            suggestions.forEach { suggestion ->
+                                                ListItem(
+                                                    headlineContent = {
+                                                        Text(
+                                                            suggestion.getPrimaryText(null)
+                                                                .toString(),
+                                                            color = Color.Black,
+                                                            fontSize = 14.sp
+                                                        )
+                                                    },
+                                                    supportingContent = {
+                                                        Text(
+                                                            suggestion.getSecondaryText(null)
+                                                                .toString(),
+                                                            color = Color.Gray,
+                                                            fontSize = 12.sp
+                                                        )
+                                                    },
+                                                    modifier = Modifier.clickable {
+                                                        viewModel.selectAddress(suggestion) { fullAddress ->
+                                                            viewModel.direccion.value = fullAddress
+                                                        }
+                                                    },
+                                                    colors = ListItemDefaults.colors(
+                                                        containerColor = Color.Transparent
+                                                    )
+                                                )
+                                                HorizontalDivider(
+                                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                                    color = Color.LightGray.copy(alpha = 0.5f)
+                                                )
                                             }
-                                            .background(Color.White.copy(alpha = 0.08f))
-                                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                                    )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -304,17 +450,15 @@ fun RegisterScreen(
                         viewModel.actualizar(
                             nombre = nombre,
                             email = email,
-                            contrasenia = password,
-                            rol = selectedRole ?: UserRole.DONANTE,
                             nombreComedor = nombreComedor.ifBlank { null },
                             whatsapp = whatsapp.ifBlank { null },
                             direccion = direccion.ifBlank { null }
                         )
                     } else {
-                        viewModel.actualizar(
+                        viewModel.registrar(
                             nombre = nombre,
                             email = email,
-                            contrasenia = password,
+                            password = password,
                             rol = selectedRole ?: UserRole.DONANTE,
                             nombreComedor = nombreComedor.ifBlank { null },
                             whatsapp = whatsapp.ifBlank { null },
@@ -322,7 +466,9 @@ fun RegisterScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF48C06)),
                 shape = RoundedCornerShape(14.dp),
                 enabled = uiState !is RegisterUiState.Loading

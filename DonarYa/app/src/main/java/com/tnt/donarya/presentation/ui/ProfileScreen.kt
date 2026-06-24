@@ -18,12 +18,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -31,12 +36,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -45,28 +50,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.data.repository.UserRepositoryImpl
-import com.tnt.donarya.domain.model.DonationRecord
-import com.tnt.donarya.domain.model.NeedType
-import com.tnt.donarya.domain.model.UserRole
-import com.tnt.donarya.ui.components.DonarYaBottomBar
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.runtime.setValue
+import com.tnt.donarya.data.GlobalNotificationObserver
 import com.tnt.donarya.data.remote.dto.DonationHistoryDto
 import com.tnt.donarya.data.remote.dto.NeedHistoryDto
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.UserRole
+import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
+import com.tnt.donarya.ui.components.DonarYaBottomBar
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    role: String,
     onHome: () -> Unit,
     onDonar: () -> Unit,
     onLogout: () -> Unit,
@@ -77,8 +76,8 @@ fun ProfileScreen(
 
     val viewModel: ProfileViewModel = viewModel()
     val profileData by viewModel.profileData.collectAsState()
-    val user      = profileData.user
-    val merendero = profileData.merendero
+    val user = profileData.user
+    val unreadCount by GlobalNotificationObserver.unreadCount.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
@@ -109,6 +108,7 @@ fun ProfileScreen(
             DonarYaBottomBar(
                 role = roleEnum,
                 currentRoute = "profile",
+                unreadNotifications = unreadCount,
                 onHome = onHome,
                 onDonar = onDonar,
                 onPerfil = {},
@@ -176,7 +176,7 @@ fun ProfileScreen(
                                         },
                                         leadingIcon = {
                                             Icon(
-                                                Icons.Default.ExitToApp,
+                                                Icons.AutoMirrored.Filled.ExitToApp,
                                                 contentDescription = null,
                                                 tint = Color(0xFFE53935)
                                             )
@@ -239,26 +239,11 @@ fun ProfileScreen(
                             color = Color(0xFF111827)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            if (user?.rol == UserRole.MERENDERO) {
-
-                                ImpactStat(
-                                    "$donationsCount",
-                                    "necesidades\ncompletadas",
-                                    null
-                                )
-
-                                ImpactStat(
-                                    "$merenderosHelped",
-                                    "merenderos\nayudados",
-                                    null
-                                )
-
-                            } else {
-
+                        if (user?.rol != UserRole.MERENDERO) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
                                 ImpactStat(
                                     "$donationsCount",
                                     "necesidades\ncompletadas",
@@ -437,8 +422,13 @@ fun DonationHistoryRow(donation: DonationHistoryDto) {
             )
         }
     }
-    Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        thickness = DividerDefaults.Thickness,
+        color = Color(0xFFF3F4F6)
+    )
 }
+
 @Composable
 fun NeedHistoryRow(need: NeedHistoryDto) {
     Row(
@@ -475,5 +465,9 @@ fun NeedHistoryRow(need: NeedHistoryDto) {
             )
         }
     }
-    Divider(modifier = Modifier.padding(horizontal = 20.dp), color = Color(0xFFF3F4F6))
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        thickness = DividerDefaults.Thickness,
+        color = Color(0xFFF3F4F6)
+    )
 }

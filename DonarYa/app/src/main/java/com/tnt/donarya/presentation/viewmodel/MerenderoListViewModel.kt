@@ -22,6 +22,7 @@ class MerenderoListViewModel : ViewModel() {
     // Nuevo — evento para la pantalla
     private val _notificacion = MutableSharedFlow<String>()
     val notificacion: SharedFlow<String> = _notificacion
+
     // Snapshot de IDs conocidos antes del refresh
     private val needsSnapshot = mutableSetOf<String>()
     private val _uiState =
@@ -44,7 +45,7 @@ class MerenderoListViewModel : ViewModel() {
                 val merenderosWithNeeds = merenderos.map { merendero ->
                     MerenderoWithNeeds(
                         merendero = merendero,
-                        needs = needRepository.getByMerendero(merendero.id)
+                        needs = needRepository.getByMerendero(merendero.id).filter { !it.isCovered }
                     )
                 }
                 // Guardar IDs iniciales sin notificar
@@ -74,7 +75,6 @@ class MerenderoListViewModel : ViewModel() {
             try {
 
                 MerenderoRepositoryImpl.invalidateCache()
-                NeedRepositoryImpl.invalidateCache()
 
                 val merenderos =
                     merenderoRepository.getAll()
@@ -86,7 +86,7 @@ class MerenderoListViewModel : ViewModel() {
                             merendero = merendero,
                             needs = needRepository.getByMerendero(
                                 merendero.id
-                            )
+                            ).filter { !it.isCovered }
                         )
                     }
 

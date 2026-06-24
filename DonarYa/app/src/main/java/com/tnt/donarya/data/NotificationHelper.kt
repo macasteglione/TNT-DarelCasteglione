@@ -1,17 +1,31 @@
 package com.tnt.donarya.data
 
+import android.Manifest
+import android.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.tnt.donarya.MainActivity
+
+data class NotifPayload(
+    val id: String,
+    val title: String,
+    val message: String,
+    val relatedNeedId: String = ""
+)
 
 object NotificationHelper {
     private const val CHANNEL_ID = "donarya_notificaciones"
     private const val PREFS_NAME = "notifications_shown"
     private const val MAX_DISPLAY = 5
+    const val EXTRA_NEED_ID = "need_id"
 
     private var prefs: SharedPreferences? = null
 
@@ -29,41 +43,56 @@ object NotificationHelper {
             ).apply {
                 description = "Notificaciones de la aplicación"
             }
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
     }
 
-    fun show(context: Context, id: String, title: String, message: String) {
-        if (wasShown(id)) return
-        markShown(id)
+    fun show(context: Context, payload: NotifPayload) {
+        if (wasShown(payload.id)) return
+        markShown(payload.id)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (android.content.pm.PackageManager.PERMISSION_DENIED ==
-                context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
             ) return
         }
 
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_NEED_ID, payload.relatedNeedId)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            payload.id.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setContentTitle(payload.title)
+            .setContentText(payload.message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(payload.message))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
             .build()
 
-        NotificationManagerCompat.from(context).notify(id.hashCode(), notification)
+        NotificationManagerCompat.from(context).notify(payload.id.hashCode(), notification)
     }
 
-    fun showMultiple(context: Context, notifications: List<Triple<String, String, String>>) {
-        notifications.take(MAX_DISPLAY).forEach { (id, title, message) ->
-            show(context, id, title, message)
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showMultiple(context: Context, notifications: List<NotifPayload>) {
+        notifications.take(MAX_DISPLAY).forEach { payload ->
+            show(context, payload)
         }
         val remaining = notifications.size - MAX_DISPLAY
         if (remaining > 0) {
             val summary = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(R.drawable.ic_dialog_info)
                 .setContentTitle("DonarYa")
                 .setContentText("$remaining notificaciones más")
                 .setAutoCancel(true)

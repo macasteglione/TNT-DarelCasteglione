@@ -1,27 +1,44 @@
 package com.tnt.donarya.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
-
 import com.tnt.donarya.presentation.ui.LoginScreen
+import com.tnt.donarya.presentation.ui.MapPickerScreen
 import com.tnt.donarya.presentation.ui.MerenderoDetailScreen
 import com.tnt.donarya.presentation.ui.MerenderoHomeScreen
 import com.tnt.donarya.presentation.ui.MerenderoListScreen
+import com.tnt.donarya.presentation.ui.NotificationsScreen
 import com.tnt.donarya.presentation.ui.OnboardingScreen
 import com.tnt.donarya.presentation.ui.ProfileScreen
 import com.tnt.donarya.presentation.ui.PublishNeedScreen
 import com.tnt.donarya.presentation.ui.RegisterScreen
-import com.tnt.donarya.presentation.ui.NotificationsScreen
+import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 
 @Composable
-fun NavGraph(navController: NavHostController, startDestination: String) {
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String,
+    pendingNeedId: String? = null,
+    onPendingNeedNavigated: () -> Unit = {}
+) {
+    val registerViewModel: RegisterViewModel = viewModel()
+    var updateAddressCallback: ((String) -> Unit)? = null
+
+    LaunchedEffect(pendingNeedId) {
+        if (!pendingNeedId.isNullOrEmpty()) {
+            navController.navigate(Screen.MerenderoDetail.createRoute(pendingNeedId))
+            onPendingNeedNavigated()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -47,8 +64,17 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
         ) { backStack ->
             val rolStr = backStack.arguments?.getString("rolInicial") ?: ""
             val rolInicial = if (rolStr.isNotBlank()) UserRole.valueOf(rolStr) else null
+
+            // Si entramos sin rol (desde el login o similar), limpiar estado previo
+            LaunchedEffect(rolStr) {
+                if (rolStr.isBlank()) {
+                    registerViewModel.resetState()
+                }
+            }
+
             RegisterScreen(
                 rolInicial = rolInicial,
+                viewModel = registerViewModel,
                 onRegisterSuccess = { rol ->
                     val destino = if (rol == UserRole.MERENDERO)
                         Screen.MerenderoHome.route
@@ -58,6 +84,18 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 },
+                onOpenMap = {
+                    navController.navigate(Screen.MapPicker.route)
+                },
+                onBack = { navController.popBackStack() },
+                onAddressSelected = { updateAddressCallback = it }
+            )
+        }
+
+        composable(Screen.MapPicker.route) {
+            MapPickerScreen(
+                viewModel = registerViewModel,
+                onAddressSelected = { updateAddressCallback?.invoke(it) },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -92,8 +130,7 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             val id = backStack.arguments?.getString("merenderoId") ?: ""
             MerenderoDetailScreen(
                 needId = id,
-                onBack = { navController.popBackStack() },
-                onVoyParaAllá = { navController.popBackStack() }
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -103,9 +140,6 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
 
             PublishNeedScreen(
                 onBack = { navController.popBackStack() },
-                onPublish = { type, urgency, description, items, _ ->
-                    navController.popBackStack()
-                },
                 initialWhatsapp = ""
             )
         }
@@ -116,9 +150,6 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             val role = user?.rol ?: UserRole.MERENDERO
             MerenderoHomeScreen(
                 onPublishNeed = { navController.navigate(Screen.PublishNeed.route) },
-                onEditNeed = { needId ->
-                    navController.navigate(Screen.EditNeed.createRoute(needId))
-                },
                 onPerfil = {
                     navController.navigate(Screen.Profile.createRoute(role.name.lowercase())) {
                         popUpTo(Screen.MerenderoHome.route) { saveState = true }
@@ -141,7 +172,6 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             val role = UserRepositoryImpl.getCurrentUser()?.rol
                 ?: if (roleStr == "merendero") UserRole.MERENDERO else UserRole.DONANTE
             ProfileScreen(
-                role = roleStr,
                 onHome = {
                     navController.navigate(Screen.MerenderoHome.route)
                 },
@@ -165,8 +195,28 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
         }
 
         composable(Screen.Notifications.route) {
+            val user = UserRepositoryImpl.getCurrentUser()
+            val role = user?.rol ?: UserRole.DONANTE
             NotificationsScreen(
-                onBack = { navController.popBackStack() }
+                role = role,
+                onHome = {
+                    navController.navigate(Screen.MerenderoHome.route) {
+                        popUpTo(Screen.Notifications.route) { inclusive = true }
+                    }
+                },
+                onDonar = {
+                    navController.navigate(Screen.MerenderoList.route) {
+                        popUpTo(Screen.Notifications.route) { inclusive = true }
+                    }
+                },
+                onPerfil = {
+                    navController.navigate(Screen.Profile.createRoute(role.name.lowercase())) {
+                        popUpTo(Screen.Notifications.route) { inclusive = true }
+                    }
+                },
+                onNotificationClick = { needId ->
+                    navController.navigate(Screen.MerenderoDetail.createRoute(needId))
+                }
             )
         }
 
@@ -175,12 +225,11 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             RegisterScreen(
                 isEditMode = true,
                 rolInicial = user?.rol,
-                initialNombre = user?.nombre ?: "",
-                initialEmail = user?.email ?: "",
-                initialNombreComedor = user?.nombreComedor ?: "",
-                initialWhatsapp = user?.whatsapp ?: "",
-                initialDireccion = user?.direccion ?: "",
+                viewModel = registerViewModel,
                 onRegisterSuccess = { navController.popBackStack() },
+                onOpenMap = {
+                    navController.navigate(Screen.MapPicker.route)
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -210,7 +259,7 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
             PublishNeedScreen(
                 needId = needId,
                 onBack = { navController.popBackStack() },
-                onPublish = { _, _, _, _, _ -> navController.popBackStack() },  // ← ignorás los parámetros
+                // ← ignorás los parámetros
                 initialWhatsapp = ""
             )
         }

@@ -14,10 +14,6 @@ sealed class Screen(val route: String) {
         fun createRoute(role: String) = "profile/$role"
     }
 
-    object NeedDetail : Screen("need_detail/{needId}") {
-        fun createRoute(id: String) = "need_detail/$id"
-    }
-
     object Register : Screen("register/{rolInicial}") {
         fun createRoute(rol: String) = "register/$rol"
     }
@@ -28,4 +24,5 @@ sealed class Screen(val route: String) {
 
     object Notifications : Screen("notifications")
     object EditProfile : Screen("edit_profile")
+    object MapPicker : Screen("map_picker")
 }
