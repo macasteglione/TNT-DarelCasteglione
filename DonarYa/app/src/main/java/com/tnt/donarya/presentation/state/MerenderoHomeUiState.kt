@@ -10,4 +10,6 @@ sealed class MerenderoHomeUiState {
         val activeNeeds: List<NeedItem>,
         val coveredNeeds: List<NeedItem>
     ) : MerenderoHomeUiState()
+
+    data class Error(val message: String) : MerenderoHomeUiState()
 }

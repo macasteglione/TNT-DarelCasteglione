@@ -7,7 +7,8 @@ sealed class MerenderoListUiState {
     object Loading : MerenderoListUiState()
 
     data class Success(
-        val merenderos: List<MerenderoWithNeeds>
+        val merenderos: List<MerenderoWithNeeds>,
+        val isRefreshing: Boolean = false
     ) : MerenderoListUiState()
 
     data class Error(

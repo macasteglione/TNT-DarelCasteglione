@@ -19,24 +19,33 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,22 +57,31 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.GlobalNotificationObserver
 import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.MerenderoHomeUiState
 import com.tnt.donarya.presentation.viewmodel.MerenderoHomeViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 import com.tnt.donarya.ui.components.UrgencyBadge
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoHomeScreen(
     onPublishNeed: () -> Unit,
     onPerfil: () -> Unit,
-    role: UserRole = UserRole.MERENDERO
+    role: UserRole = UserRole.MERENDERO,
+    onNotifications: () -> Unit = {}
 ) {
     val viewModel: MerenderoHomeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
+
+    var needToDelete by remember { mutableStateOf<NeedItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val pullState = rememberPullToRefreshState()
+    val isRefreshing = uiState is MerenderoHomeUiState.Loading
+    val unreadCount by GlobalNotificationObserver.unreadCount.collectAsState()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     androidx.compose.runtime.LaunchedEffect(lifecycleOwner) {
@@ -72,216 +90,276 @@ fun MerenderoHomeScreen(
         }
     }
 
-    when (uiState) {
-        is MerenderoHomeUiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Cargando...")
-            }
+    LaunchedEffect(Unit) {
+        viewModel.notificacion.collectLatest { mensaje ->
+            snackbarHostState.showSnackbar(mensaje)
         }
+    }
 
-        is MerenderoHomeUiState.Success -> {
-            val state = uiState as MerenderoHomeUiState.Success
-            val merendero = state.merendero
-            val needs = state.activeNeeds
-            val coveredNeeds = state.coveredNeeds
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            DonarYaBottomBar(
+                role = role,
+                currentRoute = "merendero_home",
+                unreadNotifications = unreadCount,
+                onHome = {},
+                onDonar = {},
+                onPerfil = onPerfil,
+                onNotifications = onNotifications
+            )
+        },
+        containerColor = Color(0xFFF9FAFB)
+    ) { padding ->
+        PullToRefreshBox(
+            state = pullState,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.padding(padding)
+        ) {
 
-            val initials = merendero.name
-                .split(" ")
-                .filter { it.isNotBlank() }
-                .take(2)
-                .joinToString("") { it.first().uppercase() }
+            when (uiState) {
+                is MerenderoHomeUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
 
-            Scaffold(
-                bottomBar = {
-                    DonarYaBottomBar(
-                        role = role,
-                        currentRoute = "merendero_home",
-                        onHome = {},
-                        onDonar = {},
-                        onPerfil = onPerfil
-                    )
-                },
-                containerColor = Color(0xFFF9FAFB)
-            ) { padding ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF1B4332))
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
-                        ) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Column {
-                                        Text(
-                                            "Buenos días, ${merendero.coordinator} 👋",
-                                            color = Color.White.copy(alpha = 0.8f),
-                                            fontSize = 14.sp
-                                        )
-                                        Text(
-                                            "Merendero\n${merendero.name}",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 24.sp,
-                                            lineHeight = 30.sp
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFF48C06)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            initials,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                                if (merendero.isVerified) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Default.Verified,
-                                            contentDescription = null,
-                                            tint = Color(0xFF52B788),
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            " Verificado municipalmente",
-                                            color = Color(0xFF52B788),
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                is MerenderoHomeUiState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            (uiState as MerenderoHomeUiState.Error).message,
+                            color = Color.Red,
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
+                }
 
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF2D6A4F))
-                                .padding(horizontal = 20.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            MerenderoStat("${merendero.activeNeeds}", "Activas")
-                            VerticalDivider()
-                            MerenderoStat("${merendero.coveredNeeds}", "Cubiertas")
-                            VerticalDivider()
-                            MerenderoStat("${merendero.kidsCount}", "Chicos")
-                        }
-                    }
+                is MerenderoHomeUiState.Success -> {
+                    val state = uiState as MerenderoHomeUiState.Success
+                    val merendero = state.merendero
+                    val needs = state.activeNeeds
+                    val coveredNeeds = state.coveredNeeds
 
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Mis necesidades activas",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = Color(0xFF111827)
-                            )
-                            Button(
-                                onClick = onPublishNeed,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF40916C)
-                                ),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                modifier = Modifier.height(36.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                    val initials = merendero.name
+                        .split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .joinToString("") { it.first().uppercase() }
+
+                    if (needToDelete != null) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { needToDelete = null },
+                            title = { Text("¿Eliminar necesidad?") },
+                            text = {
+                                Text(
+                                    "Se eliminará \"${needToDelete!!.title}\".\nEsta acción no se puede deshacer."
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Nueva", fontSize = 13.sp)
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        viewModel.eliminarNecesidad(needToDelete!!.id)
+                                        needToDelete = null
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFE63946)
+                                    )
+                                ) { Text("Eliminar") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { needToDelete = null }) {
+                                    Text("Cancelar", color = Color(0xFF40916C))
+                                }
                             }
-                        }
-                    }
-
-                    items(needs) { need ->
-                        NeedManageCard(
-                            need = need,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                         )
                     }
 
-                    if (coveredNeeds.isNotEmpty()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
                         item {
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF1B4332))
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            ) {
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Column {
+                                            Text(
+                                                "Buenos días, ${merendero.coordinator} 👋",
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                fontSize = 14.sp
+                                            )
+                                            Text(
+                                                "Merendero\n${merendero.name}",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 24.sp,
+                                                lineHeight = 30.sp
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFF48C06)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                initials,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    if (merendero.isVerified) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.Verified,
+                                                contentDescription = null,
+                                                tint = Color(0xFF52B788),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                " Verificado municipalmente",
+                                                color = Color(0xFF52B788),
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
+                                    .background(Color(0xFF2D6A4F))
+                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                MerenderoStat("${state.activeNeeds.size}", "Activas")
+                                VerticalDivider()
+                                MerenderoStat("${state.coveredNeeds.size}", "Cubiertas")
+                            }
+                        }
+
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "Cubiertas recientemente",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp,
+                                    "Mis necesidades activas",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
                                     color = Color(0xFF111827)
                                 )
-                                TextButton(onClick = {}) {
-                                    Text("Ver todas", color = Color(0xFF40916C), fontSize = 13.sp)
-                                }
-                            }
-                        }
-
-                        items(coveredNeeds) { need ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(need.title, fontSize = 14.sp, color = Color(0xFF374151))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Button(
+                                    onClick = onPublishNeed,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF40916C)
+                                    ),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 14.dp,
+                                        vertical = 6.dp
+                                    ),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
                                     Icon(
-                                        Icons.Default.CheckCircle,
+                                        Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = Color(0xFF40916C),
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Text(
-                                        " Cubierta",
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF40916C),
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Nueva", fontSize = 13.sp)
                                 }
                             }
-                            Divider(
-                                modifier = Modifier.padding(horizontal = 20.dp),
-                                color = Color(0xFFF3F4F6)
+                        }
+
+                        items(needs) { need ->
+                            NeedManageCard(
+                                need = need,
+                                onDelete = { needToDelete = need },
+                                onMarkCovered = { viewModel.marcarComoCubierta(need.id) },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                             )
                         }
-                    }
 
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
+                        if (coveredNeeds.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Cubiertas recientemente",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF111827)
+                                    )
+                                    TextButton(onClick = {}) {
+                                        Text(
+                                            "Ver todas",
+                                            color = Color(0xFF40916C),
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            items(coveredNeeds) { need ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(need.title, fontSize = 14.sp, color = Color(0xFF374151))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF40916C),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            " Cubierta",
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF40916C),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 20.dp),
+                                    thickness = DividerDefaults.Thickness,
+                                    color = Color(0xFFF3F4F6)
+                                )
+                            }
+                        }
+
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+                    }
                 }
             }
         }
@@ -298,15 +376,22 @@ fun RowScope.MerenderoStat(value: String, label: String) {
 
 @Composable
 fun VerticalDivider() {
-    Divider(
+    HorizontalDivider(
         modifier = Modifier
             .width(1.dp)
-            .height(36.dp), color = Color.White.copy(alpha = 0.2f)
+            .height(36.dp),
+        thickness = DividerDefaults.Thickness,
+        color = Color.White.copy(alpha = 0.2f)
     )
 }
 
 @Composable
-fun NeedManageCard(need: NeedItem, modifier: Modifier = Modifier) {
+fun NeedManageCard(
+    need: NeedItem,
+    onDelete: () -> Unit,
+    onMarkCovered: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -346,7 +431,7 @@ fun NeedManageCard(need: NeedItem, modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.DirectionsWalk,
+                        Icons.AutoMirrored.Filled.DirectionsWalk,
                         contentDescription = null,
                         tint = Color(0xFF40916C),
                         modifier = Modifier.size(14.dp)
@@ -366,18 +451,40 @@ fun NeedManageCard(need: NeedItem, modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(
-                    onClick = {},
+                    onClick = onDelete,
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF40916C)
+                        contentColor = Color(0xFFE63946)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, Color(0xFFE63946)
                     ),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                     modifier = Modifier.height(34.dp)
                 ) {
-                    Text("Editar", fontSize = 13.sp)
+                    Text("Eliminar", fontSize = 13.sp)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onMarkCovered,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF40916C)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Cubierta", fontSize = 13.sp)
                 }
             }
         }

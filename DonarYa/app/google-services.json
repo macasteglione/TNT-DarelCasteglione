@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "591704104832",
+    "project_id": "donarya-ce194",
+    "storage_bucket": "donarya-ce194.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:591704104832:android:d14475835744dfb5a32b65",
+        "android_client_info": {
+          "package_name": "com.tnt.donarya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3nEXhbrz49llTLUGH8PYwZqRwu1fARxs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

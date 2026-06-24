@@ -22,11 +22,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,44 +53,76 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.UrgencyLevel
+import com.tnt.donarya.presentation.viewmodel.PublishNeedUiState
+import com.tnt.donarya.presentation.viewmodel.PublishNeedViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishNeedScreen(
+    needId: String = "",
     onBack: () -> Unit,
-    onPublish: (type: NeedType, urgency: UrgencyLevel, description: String, items: List<String>, whatsapp: String) -> Unit,
-    initialWhatsapp: String = ""
+    initialWhatsapp: String = "",
+    viewModel: PublishNeedViewModel = viewModel()
 ) {
+    val whatsappFromVM by viewModel.whatsapp.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
     var selectedType by remember { mutableStateOf<NeedType?>(null) }
     var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(null) }
     var description by remember { mutableStateOf("") }
     var items by remember { mutableStateOf(emptyList<String>()) }
-    var whatsapp by remember { mutableStateOf(initialWhatsapp) }
+    // Usás whatsappFromVM en lugar de initialWhatsapp
+    var whatsapp by remember(whatsappFromVM) { mutableStateOf(whatsappFromVM) }
     var newItem by remember { mutableStateOf("") }
+
+    val user = UserRepositoryImpl.getCurrentUser()
+
+    val loadedNeed by viewModel.loadedNeed.collectAsState()
+
+    // Precargá los campos cuando llega el need cargado
+    LaunchedEffect(loadedNeed) {
+        loadedNeed?.let {
+            selectedType = it.type
+            selectedUrgency = it.urgency
+            description = it.description
+            items = it.items
+        }
+    }
+
+    // Pedí la carga cuando entra a la pantalla
+    LaunchedEffect(needId) {
+        if (needId.isNotBlank()) {
+            viewModel.cargarNecesidad(needId)
+        }
+    }
+
+    // Para ir atas cuando guarda
+    LaunchedEffect(uiState) {
+        if (uiState is PublishNeedUiState.Success) {
+            onBack()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Detalle de la necesidad", fontSize = 16.sp, color = Color(0xFF374151))
+                    Text("Detalle de la necesidad", fontSize = 16.sp, color = Color.White)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.White
+                        )
                     }
                 },
-                actions = {
-                    TextButton(onClick = {
-                        val type = selectedType ?: return@TextButton
-                        val urgency = selectedUrgency ?: return@TextButton
-                        onPublish(type, urgency, description, items, whatsapp)
-                    }) {
-                        Text("Guardar", color = Color(0xFF40916C), fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B4332))
             )
         },
         containerColor = Color(0xFFF9FAFB)
@@ -103,7 +138,7 @@ fun PublishNeedScreen(
             // Need type
             FormSection(title = "Tipo de necesidad") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(NeedType.values()) { type ->
+                    items(NeedType.entries.toTypedArray()) { type ->
                         val isSelected = selectedType == type
                         Box(
                             modifier = Modifier
@@ -163,14 +198,19 @@ fun PublishNeedScreen(
                     placeholder = { Text("Describí qué necesitás y para cuántas personas...") },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color(0xFF111827),
+                        unfocusedTextColor = Color(0xFF111827),
                         focusedBorderColor = Color(0xFF40916C),
-                        unfocusedBorderColor = Color(0xFFE5E7EB)
+                        unfocusedBorderColor = Color(0xFF9CA3AF),
+                        unfocusedPlaceholderColor = Color(0xFF111827),
+                        focusedPlaceholderColor = Color(0xFF111827),
+                        cursorColor = Color(0xFF40916C)
                     ),
                     trailingIcon = {
                         Text(
                             "${description.length}/150",
                             fontSize = 11.sp,
-                            color = Color(0xFF9CA3AF),
+                            color = Color(0xFF111827),
                             modifier = Modifier.padding(end = 8.dp)
                         )
                     }
@@ -223,7 +263,7 @@ fun PublishNeedScreen(
                                 }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text("+ Agregar", fontSize = 13.sp, color = Color(0xFF6B7280))
+                            Text("+ Agregar", fontSize = 13.sp, color = Color(0xFF111827))
                         }
                     }
                 }
@@ -236,8 +276,13 @@ fun PublishNeedScreen(
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color(0xFF111827),
+                        unfocusedTextColor = Color(0xFF111827),
                         focusedBorderColor = Color(0xFF40916C),
-                        unfocusedBorderColor = Color(0xFFE5E7EB)
+                        unfocusedBorderColor = Color(0xFF9CA3AF),
+                        unfocusedPlaceholderColor = Color(0xFF111827),
+                        focusedPlaceholderColor = Color(0xFF111827),
+                        cursorColor = Color(0xFF40916C)
                     ),
                     trailingIcon = {
                         TextButton(onClick = {
@@ -265,17 +310,27 @@ fun PublishNeedScreen(
                     singleLine = true,
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Chat,
+                            Icons.AutoMirrored.Filled.Chat,
                             contentDescription = null,
                             tint = Color(0xFF25D366)
                         )
                     },
                     placeholder = { Text("+54 9 ...") },
                     shape = RoundedCornerShape(12.dp),
-                    supportingText = { Text("Los donantes podrán contactarte") },
+                    supportingText = {
+                        Text(
+                            "Los donantes podrán contactarte",
+                            color = Color(0xFF111827)
+                        )
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color(0xFF111827),
+                        unfocusedTextColor = Color(0xFF111827),
                         focusedBorderColor = Color(0xFF40916C),
-                        unfocusedBorderColor = Color(0xFFE5E7EB)
+                        unfocusedBorderColor = Color(0xFF9CA3AF),
+                        unfocusedPlaceholderColor = Color(0xFF111827),
+                        focusedPlaceholderColor = Color(0xFF111827),
+                        cursorColor = Color(0xFF40916C)
                     )
                 )
             }
@@ -285,18 +340,38 @@ fun PublishNeedScreen(
                 onClick = {
                     val type = selectedType ?: return@Button
                     val urgency = selectedUrgency ?: return@Button
-                    onPublish(type, urgency, description, items, whatsapp)
+                    if (needId.isNotBlank()) {
+                        viewModel.actualizarNecesidad(needId, type, urgency, description, items)
+                    } else {
+                        viewModel.publicar(
+                            merenderoId = user?.merenderoId ?: "",
+                            type = type,
+                            urgency = urgency,
+                            description = description,
+                            items = items
+                        )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF40916C)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF40916C),
+                    contentColor = Color.White,
+                    disabledContainerColor = Color(0xFF40916C),
+                    disabledContentColor = Color.White
+                ),
                 shape = RoundedCornerShape(14.dp),
-                enabled = selectedType != null && selectedUrgency != null && description.isNotBlank()
+                enabled = selectedType != null && selectedUrgency != null
+                        && description.isNotBlank()
+                        && uiState !is PublishNeedUiState.Loading   // ← deshabilita mientras carga
             ) {
-                Text("Publicar", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (uiState is PublishNeedUiState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
+                } else {
+                    Text(if (needId.isNotBlank()) "Guardar cambios" else "Publicar")
+                }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -314,7 +389,7 @@ fun FormSection(
             Text(
                 it,
                 fontSize = 12.sp,
-                color = Color(0xFF6B7280),
+                color = Color(0xFF111827),
                 modifier = Modifier.padding(top = 2.dp)
             )
         }

@@ -3,7 +3,6 @@ package com.tnt.donarya.presentation.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,15 +19,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,34 +35,39 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.presentation.viewmodel.MerenderoDetailViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.MerenderoDetailUiState
+import com.tnt.donarya.presentation.viewmodel.MerenderoDetailViewModel
 import com.tnt.donarya.ui.components.ItemChip
 import com.tnt.donarya.ui.components.UrgencyBadge
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoDetailScreen(
-    merenderoId: String,
-    onBack: () -> Unit,
-    onVoyParaAllá: () -> Unit
+    needId: String,
+    onBack: () -> Unit
 ) {
     val viewModel: MerenderoDetailViewModel = viewModel()
 
-    viewModel.loadMerendero(merenderoId)
+    val confirmState by viewModel.confirmState.collectAsState()
+
+    LaunchedEffect(needId) {
+        viewModel.loadNeed(needId)
+    }
 
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -98,6 +102,10 @@ fun MerenderoDetailScreen(
 
             val need = state.data.needs.firstOrNull() ?: return
 
+            val needId = state.data.needs
+                .firstOrNull { !it.isCovered }
+                ?.id
+
             Scaffold(
                 containerColor = Color(0xFFF9FAFB)
             ) { padding ->
@@ -117,7 +125,7 @@ fun MerenderoDetailScreen(
                             Column {
                                 IconButton(onClick = onBack) {
                                     Icon(
-                                        Icons.Default.ArrowBack,
+                                        Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Volver",
                                         tint = Color.White
                                     )
@@ -156,10 +164,10 @@ fun MerenderoDetailScreen(
                     item {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                "Necesitamos alimentos secos",
+                                need.title,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp,
-                                color = Color(0xFF111827)
+                                color = Color(0xFF1B4332)
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -204,37 +212,37 @@ fun MerenderoDetailScreen(
                             SectionTitle("Cómo llegar")
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Map placeholder
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFE8F5E9))
-                                    .clickable {
-                                        val address = "${merendero.address}, ${merendero.neighborhood}"
-                                        val uri = "geo:0,0?q=${Uri.encode(address)}".toUri()
-                                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                            setPackage("com.google.android.apps.maps")
-                                        }
-                                        context.startActivity(intent)
-                                    },
-                                contentAlignment = Alignment.Center
+                            OutlinedButton(
+                                onClick = {
+                                    val address = "${merendero.address}, ${merendero.neighborhood}"
+                                    val hasCoords =
+                                        merendero.latitude != 0.0 && merendero.longitude != 0.0
+                                    val uri = if (hasCoords) {
+                                        "geo:${merendero.latitude},${merendero.longitude}?q=${merendero.latitude},${merendero.longitude}(Merendero ${merendero.name})".toUri()
+                                    } else {
+                                        "geo:0,0?q=${Uri.encode(address)}".toUri()
+                                    }
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        setPackage("com.google.android.apps.maps")
+                                    }
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFF4285F4)
+                                )
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.Default.Map,
-                                        contentDescription = null,
-                                        tint = Color(0xFF40916C),
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                    Text(
-                                        "${merendero.distanceKm} km · ~${merendero.walkMinutes} min caminando",
-                                        color = Color(0xFF40916C),
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4285F4)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Tocar para abrir en Google Maps",
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -263,7 +271,7 @@ fun MerenderoDetailScreen(
                                 )
                             ) {
                                 Icon(
-                                    Icons.Default.Chat,
+                                    Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
                                     tint = Color(0xFF25D366)
                                 )
@@ -280,25 +288,79 @@ fun MerenderoDetailScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // CTA
-                            Button(
-                                onClick = onVoyParaAllá,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xFF1B4332
+                            val currentUser = UserRepositoryImpl.getCurrentUser()
+                            if (currentUser?.rol == UserRole.DONANTE) {
+                                Button(
+                                    onClick = {
+                                        if (needId != null) {
+                                            viewModel.confirmarDonacion(needId)
+                                        }
+                                    },
+                                    enabled = confirmState !is MerenderoDetailViewModel.ConfirmState.Loading
+                                            && confirmState !is MerenderoDetailViewModel.ConfirmState.Success,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = when (confirmState) {
+                                            is MerenderoDetailViewModel.ConfirmState.Success -> Color(
+                                                0xFF22C55E
+                                            )
+
+                                            else -> Color(0xFF1B4332)
+                                        },
+                                        contentColor = Color.White,
+                                        disabledContainerColor = when (confirmState) {
+                                            is MerenderoDetailViewModel.ConfirmState.Success -> Color(
+                                                0xFF22C55E
+                                            )
+
+                                            else -> Color(0xFF1B4332)
+                                        },
+                                        disabledContentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    when (confirmState) {
+                                        is MerenderoDetailViewModel.ConfirmState.Loading ->
+                                            CircularProgressIndicator(
+                                                color = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+
+                                        is MerenderoDetailViewModel.ConfirmState.Success ->
+                                            Text(
+                                                "✓ ¡Avisaste que vas!",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+
+                                        is MerenderoDetailViewModel.ConfirmState.Error ->
+                                            Text(
+                                                "Error — intentá de nuevo",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                            )
+
+                                        else ->
+                                            Text(
+                                                "Voy para allá",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                    }
+                                }
+
+                                // Mostrar error como texto si falló
+                                if (confirmState is MerenderoDetailViewModel.ConfirmState.Error) {
+                                    Text(
+                                        (confirmState as MerenderoDetailViewModel.ConfirmState.Error).message,
+                                        color = Color(0xFFE63946),
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(top = 8.dp)
                                     )
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text(
-                                    "Voy para allá",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                            }
+                                }
+                            } // end if DONANTE
                         }
                     }
                 }
