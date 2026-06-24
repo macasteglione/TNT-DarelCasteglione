@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,7 +65,7 @@ import com.tnt.donarya.presentation.viewmodel.ProfileViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     onHome: () -> Unit,
@@ -92,6 +94,7 @@ fun ProfileScreen(
         .map { it.merenderoName }
         .distinct()
         .size
+    val needsHistory = profileData.needsHistory
 
     // PARA LA "FOTO" QUE MUESTRE LAS INICIALES
     val initials = user?.nombre
@@ -256,12 +259,28 @@ fun ProfileScreen(
                                     null
                                 )
                             }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                ImpactStat(
+                                    "${needsHistory.size}",
+                                    "necesidades\npublicadas",
+                                    null
+                                )
+
+                                ImpactStat(
+                                    "${needsHistory.count { it.isCovered }}",
+                                    "necesidades\ncubiertas",
+                                    null
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            if (user?.rol != UserRole.MERENDERO) {
                 item {
                     // Badges
                     Card(
@@ -280,40 +299,44 @@ fun ProfileScreen(
                                 color = Color(0xFF111827)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                user?.badges?.forEach { badge ->
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(52.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    if (badge.earned) Color(0xFFD8F3DC) else Color(
-                                                        0xFFF3F4F6
-                                                    )
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(badge.emoji, fontSize = 24.sp)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            badge.name,
-                                            fontSize = 11.sp,
-                                            color = if (badge.earned) Color(0xFF374151) else Color(
-                                                0xFF9CA3AF
+                            val earnedBadges = user?.badges?.filter { it.earned }.orEmpty()
+                            if (earnedBadges.isEmpty()) {
+                                Text(
+                                    "Todavía no tienes ninguna insignia",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF9CA3AF),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    earnedBadges.forEach { badge ->
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(52.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFFD8F3DC)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(badge.emoji, fontSize = 24.sp)
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                badge.name,
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF374151)
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
             if (user?.rol != UserRole.MERENDERO) {
                 item {

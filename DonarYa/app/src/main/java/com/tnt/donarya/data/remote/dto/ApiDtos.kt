@@ -28,5 +28,7 @@ data class DonationHistoryDto(
 data class NeedHistoryDto(
     val title: String,
     val type: String,
-    val daysAgo: Int
+    val daysAgo: Int,
+    val isCovered: Boolean = false,
+    val donorsOnWay: Int = 0
 )

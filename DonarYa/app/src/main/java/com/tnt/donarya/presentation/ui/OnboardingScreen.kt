@@ -15,11 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,22 +59,6 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
@@ -187,24 +168,10 @@ fun RoleCard(
             .padding(16.dp)
     ) {
         Column(
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF48C06)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✓", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Spacer(modifier = Modifier.height(20.dp))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(if (selected) 20.dp else 8.dp))
             Text(emoji, fontSize = 32.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -221,6 +188,18 @@ fun RoleCard(
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+        }
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF48C06)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✓", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
