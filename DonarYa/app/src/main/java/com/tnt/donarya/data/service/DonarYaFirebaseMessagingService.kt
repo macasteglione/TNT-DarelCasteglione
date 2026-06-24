@@ -54,7 +54,7 @@ class DonarYaFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher) // Deberías usar un icono de notificación real
+            .setSmallIcon(R.drawable.ic_notification_heart)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)

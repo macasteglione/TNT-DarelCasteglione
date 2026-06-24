@@ -258,6 +258,9 @@ object FirebaseUserRepository : UserRepository {
                 val needId = doc.data?.get("needId") as? String ?: continue
                 val needDoc = db.collection("needs").document(needId).get().await()
                 val needData = needDoc.data ?: continue
+                val isCovered = needData["isCovered"] as? Boolean ?: false
+                if (!isCovered) continue
+
                 val merenderoId = needData["merenderoId"] as? String ?: ""
                 val merenderoDoc = db.collection("merenderos").document(merenderoId).get().await()
                 val merenderoName = merenderoDoc.data?.get("name") as? String ?: ""
@@ -301,7 +304,9 @@ object FirebaseUserRepository : UserRepository {
                 com.tnt.donarya.data.remote.dto.NeedHistoryDto(
                     title = data["title"] as? String ?: "",
                     type = data["type"] as? String ?: "",
-                    daysAgo = daysAgo
+                    daysAgo = daysAgo,
+                    isCovered = data["isCovered"] as? Boolean ?: false,
+                    donorsOnWay = (data["donorsOnWay"] as? Long)?.toInt() ?: 0
                 )
             }
         } catch (_: Exception) {

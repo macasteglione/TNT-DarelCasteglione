@@ -1,7 +1,7 @@
 package com.tnt.donarya.data
 
 import android.Manifest
-import android.R
+import com.tnt.donarya.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -72,7 +72,7 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification_heart)
             .setContentTitle(payload.title)
             .setContentText(payload.message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(payload.message))
@@ -92,7 +92,7 @@ object NotificationHelper {
         val remaining = notifications.size - MAX_DISPLAY
         if (remaining > 0) {
             val summary = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification_heart)
                 .setContentTitle("DonarYa")
                 .setContentText("$remaining notificaciones más")
                 .setAutoCancel(true)
