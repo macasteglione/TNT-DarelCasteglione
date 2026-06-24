@@ -3,17 +3,46 @@ package com.tnt.donarya.presentation.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -26,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.GlobalNotificationObserver
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.RegisterUiState
@@ -35,11 +65,6 @@ import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 fun RegisterScreen(
     rolInicial: UserRole? = null,
     isEditMode: Boolean = false,
-    initialNombre: String = "",
-    initialEmail: String = "",
-    initialNombreComedor: String = "",
-    initialWhatsapp: String = "",
-    initialDireccion: String = "",
     onRegisterSuccess: (UserRole) -> Unit,
     onOpenMap: () -> Unit,
     onBack: () -> Unit,
@@ -55,13 +80,14 @@ fun RegisterScreen(
     val whatsapp by viewModel.whatsapp.collectAsState()
     val direccion by viewModel.direccion.collectAsState()
     val selectedRole by viewModel.selectedRole.collectAsState()
-    
+
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     val suggestions by viewModel.addressSuggestions.collectAsState()
 
     LaunchedEffect(Unit) {
+        viewModel.resetState()
         onAddressSelected { viewModel.direccion.value = it }
         if (isEditMode) {
             UserRepositoryImpl.getCurrentUser()?.let {
@@ -85,6 +111,7 @@ fun RegisterScreen(
     LaunchedEffect(uiState) {
         if (uiState is RegisterUiState.Success) {
             val user = (uiState as RegisterUiState.Success).user
+            GlobalNotificationObserver.restartForCurrentUser()
             onRegisterSuccess(user.rol)
         }
     }
@@ -112,7 +139,11 @@ fun RegisterScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White
+                    )
                 }
                 Text(
                     if (isEditMode) "Editar perfil" else "Crear cuenta",
@@ -198,7 +229,12 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { viewModel.email.value = it },
-                        label = { Text("Correo electrónico", color = Color.White.copy(alpha = 0.7f)) },
+                        label = {
+                            Text(
+                                "Correo electrónico",
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -238,7 +274,11 @@ fun RegisterScreen(
                         Column {
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Divider(color = Color.White.copy(alpha = 0.2f))
+                            HorizontalDivider(
+                                Modifier,
+                                DividerDefaults.Thickness,
+                                color = Color.White.copy(alpha = 0.2f)
+                            )
 
                             Spacer(modifier = Modifier.height(16.dp))
 
@@ -253,7 +293,12 @@ fun RegisterScreen(
                             OutlinedTextField(
                                 value = nombreComedor,
                                 onValueChange = { viewModel.nombreComedor.value = it },
-                                label = { Text("Nombre del comedor *", color = Color.White.copy(alpha = 0.7f)) },
+                                label = {
+                                    Text(
+                                        "Nombre del comedor *",
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 colors = fieldColors(),
@@ -265,7 +310,12 @@ fun RegisterScreen(
                             OutlinedTextField(
                                 value = whatsapp,
                                 onValueChange = { viewModel.whatsapp.value = it },
-                                label = { Text("WhatsApp *", color = Color.White.copy(alpha = 0.7f)) },
+                                label = {
+                                    Text(
+                                        "WhatsApp *",
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -284,7 +334,12 @@ fun RegisterScreen(
                                                 viewModel.direccion.value = it
                                                 viewModel.searchAddress(it)
                                             },
-                                            label = { Text("Dirección", color = Color.White.copy(alpha = 0.7f)) },
+                                            label = {
+                                                Text(
+                                                    "Dirección",
+                                                    color = Color.White.copy(alpha = 0.7f)
+                                                )
+                                            },
                                             modifier = Modifier.fillMaxWidth(),
                                             singleLine = true,
                                             trailingIcon = {
@@ -292,7 +347,9 @@ fun RegisterScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.LocationOn,
                                                         contentDescription = "Seleccionar en mapa",
-                                                        tint = if (selectedLocation != null) Color(0xFFF48C06) else Color.White.copy(alpha = 0.7f)
+                                                        tint = if (selectedLocation != null) Color(
+                                                            0xFFF48C06
+                                                        ) else Color.White.copy(alpha = 0.7f)
                                                     )
                                                 }
                                             },
@@ -305,7 +362,10 @@ fun RegisterScreen(
                                                 "Ubicación fijada en el mapa ✓",
                                                 color = Color(0xFFF48C06),
                                                 fontSize = 11.sp,
-                                                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                                modifier = Modifier.padding(
+                                                    start = 4.dp,
+                                                    top = 4.dp
+                                                )
                                             )
                                         }
                                     }
@@ -323,19 +383,25 @@ fun RegisterScreen(
                                         ),
                                         elevation = CardDefaults.cardElevation(8.dp)
                                     ) {
-                                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                        Column(
+                                            modifier = Modifier.verticalScroll(
+                                                rememberScrollState()
+                                            )
+                                        ) {
                                             suggestions.forEach { suggestion ->
                                                 ListItem(
                                                     headlineContent = {
                                                         Text(
-                                                            suggestion.getPrimaryText(null).toString(),
+                                                            suggestion.getPrimaryText(null)
+                                                                .toString(),
                                                             color = Color.Black,
                                                             fontSize = 14.sp
                                                         )
                                                     },
                                                     supportingContent = {
                                                         Text(
-                                                            suggestion.getSecondaryText(null).toString(),
+                                                            suggestion.getSecondaryText(null)
+                                                                .toString(),
                                                             color = Color.Gray,
                                                             fontSize = 12.sp
                                                         )
@@ -384,8 +450,6 @@ fun RegisterScreen(
                         viewModel.actualizar(
                             nombre = nombre,
                             email = email,
-                            contrasenia = password,
-                            rol = selectedRole ?: UserRole.DONANTE,
                             nombreComedor = nombreComedor.ifBlank { null },
                             whatsapp = whatsapp.ifBlank { null },
                             direccion = direccion.ifBlank { null }
@@ -402,7 +466,9 @@ fun RegisterScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF48C06)),
                 shape = RoundedCornerShape(14.dp),
                 enabled = uiState !is RegisterUiState.Loading

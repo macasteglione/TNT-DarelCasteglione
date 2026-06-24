@@ -13,13 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +33,8 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,22 +43,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.GlobalNotificationObserver
+import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.Merendero
+import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.domain.model.UserRole
-import com.tnt.donarya.domain.model.UrgencyLevel
+import com.tnt.donarya.presentation.state.MerenderoListUiState
 import com.tnt.donarya.presentation.viewmodel.MerenderoListViewModel
 import com.tnt.donarya.ui.components.DonarYaBottomBar
+import com.tnt.donarya.ui.components.LoadingView
 import com.tnt.donarya.ui.components.StatCard
 import com.tnt.donarya.ui.components.UrgencyBadge
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import com.tnt.donarya.data.repository.UserRepositoryImpl
-import com.tnt.donarya.domain.model.MerenderoWithNeeds
-import com.tnt.donarya.domain.model.NeedItem
-import com.tnt.donarya.presentation.state.MerenderoListUiState
 import kotlinx.coroutines.flow.collectLatest
-
-import com.tnt.donarya.ui.components.LoadingView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +73,7 @@ fun MerenderoListScreen(
 
     val pullState = rememberPullToRefreshState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val unreadCount by GlobalNotificationObserver.unreadCount.collectAsState()
 
     val user = UserRepositoryImpl.getCurrentUser()
 
@@ -106,6 +104,7 @@ fun MerenderoListScreen(
                 DonarYaBottomBar(
                     role = role,
                     currentRoute = "merendero_list",
+                    unreadNotifications = unreadCount,
                     onHome = {},
                     onDonar = {},
                     onPerfil = onPerfil,
@@ -165,6 +164,11 @@ fun MerenderoListScreen(
                     }
                 }
 
+                val totalActivos = (uiState as? MerenderoListUiState.Success)
+                    ?.merenderos
+                    ?.flatMap { it.needs }
+                    ?.size ?: 0
+
                 item {
                     // Stats row
                     Row(
@@ -174,7 +178,7 @@ fun MerenderoListScreen(
                             .padding(horizontal = 20.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        StatCard("3", "Activos")
+                        StatCard("$totalActivos", "Activos")
                     }
                 }
 
@@ -305,7 +309,7 @@ fun NeedCard(
                     modifier = Modifier.weight(1f)
                 ) {
 
-                    need.urgency?.let {
+                    need.urgency.let {
                         UrgencyBadge(it)
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -379,7 +383,7 @@ fun NeedCard(
                     need.donorsOnWay > 0 -> {
 
                         Icon(
-                            Icons.Default.DirectionsWalk,
+                            Icons.AutoMirrored.Filled.DirectionsWalk,
                             contentDescription = null,
                             tint = Color(0xFF40916C),
                             modifier = Modifier.size(14.dp)

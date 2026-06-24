@@ -1,163 +1,32 @@
 package com.tnt.donarya.data.repository
 
-import android.content.Context
-import com.tnt.donarya.data.local.LocalStorage
-import com.tnt.donarya.data.remote.ApiClient
-import com.tnt.donarya.data.remote.TokenStorage
-import com.tnt.donarya.data.remote.dto.LoginRequestDto
-import com.tnt.donarya.data.remote.dto.RegisterRequestDto
 import com.tnt.donarya.data.remote.dto.UpdateProfileRequestDto
-import com.tnt.donarya.domain.model.Badge
-import com.tnt.donarya.domain.model.DonationRecord
-import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.User
-import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.repository.UserRepository
-import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 
 object UserRepositoryImpl : UserRepository {
 
-    private val users = mutableListOf<User>()
-    private lateinit var storage: LocalStorage
-    private var currentUser: User? = null
-
-    override fun register(user: User, latitude: Double, longitude: Double): Result<User> = runBlocking(Dispatchers.IO) {
-        val rol = if (user.rol == UserRole.MERENDERO) "MERENDERO" else "DONANTE"
-        val response = ApiClient.register(
-            RegisterRequestDto(
-                nombre = user.nombre,
-                email = user.email,
-                password = user.password,
-                rol = rol,
-                nombreComedor = user.nombreComedor,
-                whatsapp = user.whatsapp,
-                direccion = user.direccion,
-                latitude = latitude,
-                longitude = longitude
-            )
-        )
-        response.map { dto ->
-            val newUser = User(
-                id = dto.user.id,
-                nombre = dto.user.nombre,
-                email = dto.user.email,
-                password = user.password,
-                rol = if (dto.user.rol == "MERENDERO") UserRole.MERENDERO else UserRole.DONANTE,
-                nombreComedor = dto.user.nombreComedor,
-                whatsapp = dto.user.whatsapp,
-                direccion = dto.user.direccion,
-                merenderoId = dto.user.merenderoId,
-                donationsCount = dto.user.donationsCount,
-                mendecerosHelped = dto.user.mendecerosHelped,
-                beneficiados = dto.user.beneficiados
-            )
-            TokenStorage.saveToken(dto.token)
-            users.add(newUser)
-            storage.saveUsers(users)
-            currentUser = newUser
-            storage.saveLoggedUser(newUser.email)
-
-            // Suscribir a notificaciones si es DONANTE
-            if (newUser.rol == UserRole.DONANTE) {
-                FirebaseMessaging.getInstance().subscribeToTopic("donors")
-            }
-
-            newUser
-        }
+    override fun register(user: User, latitude: Double, longitude: Double): Result<User> {
+        return FirebaseUserRepository.register(user, latitude, longitude)
     }
 
-    override fun login(email: String, password: String): Result<User> = runBlocking(Dispatchers.IO) {
-        val response = ApiClient.login(LoginRequestDto(email, password))
-        response.map { dto ->
-            val user = User(
-                id = dto.user.id,
-                nombre = dto.user.nombre,
-                email = dto.user.email,
-                password = password,
-                rol = if (dto.user.rol == "MERENDERO") UserRole.MERENDERO else UserRole.DONANTE,
-                nombreComedor = dto.user.nombreComedor,
-                whatsapp = dto.user.whatsapp,
-                direccion = dto.user.direccion,
-                merenderoId = dto.user.merenderoId,
-                donationsCount = dto.user.donationsCount,
-                mendecerosHelped = dto.user.mendecerosHelped,
-                beneficiados = dto.user.beneficiados
-            )
-            TokenStorage.saveToken(dto.token)
-            currentUser = user
-            storage.saveLoggedUser(user.email)
-            if (users.none { it.id == user.id }) users.add(user)
-
-            // Suscribir a notificaciones si es DONANTE
-            if (user.rol == UserRole.DONANTE) {
-                FirebaseMessaging.getInstance().subscribeToTopic("donors")
-            }
-
-            user
-        }
+    override fun login(email: String, password: String): Result<User> {
+        return FirebaseUserRepository.login(email, password)
     }
 
-    override fun getCurrentUser(): User? = currentUser
+    override fun getCurrentUser(): User? {
+        return FirebaseUserRepository.getCurrentUser()
+    }
 
     override fun logout() {
-        // Desuscribir de notificaciones
-        if (currentUser?.rol == UserRole.DONANTE) {
-            try {
-                FirebaseMessaging.getInstance().unsubscribeFromTopic("donors")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-        currentUser = null
-        TokenStorage.clear()
-        storage.clearSession()
-    }
-
-    fun init(context: Context) {
-        storage = LocalStorage(context)
-        TokenStorage.init(context)
-        val savedUsers = storage.getUsers()
-        if (savedUsers.isNotEmpty()) {
-            users.clear()
-            users.addAll(savedUsers)
-        }
-    }
-
-    fun restoreSession(): User? {
-        val email = storage.getLoggedUser()
-        currentUser = users.find { it.email == email }
-
-        // Asegurar suscripción al restaurar sesión
-        if (currentUser?.rol == UserRole.DONANTE) {
-            try {
-                FirebaseMessaging.getInstance().subscribeToTopic("donors")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        return currentUser
+        FirebaseUserRepository.logout()
     }
 
     override suspend fun updateProfile(req: UpdateProfileRequestDto): Result<User> {
-        val result = ApiClient.updateProfile(req)
-        return result.map { dto ->
-            val updatedUser = currentUser!!.copy(
-                nombre = dto.nombre,
-                email = dto.email,
-                nombreComedor = dto.nombreComedor,
-                whatsapp = dto.whatsapp,
-                direccion = dto.direccion
-            )
-            currentUser = updatedUser
-            // Actualizar también en LocalStorage para que persista
-            val idx = users.indexOfFirst { it.id == updatedUser.id }
-            if (idx >= 0) users[idx] = updatedUser
-            storage.saveUsers(users)
-            storage.saveLoggedUser(updatedUser.email)
-            updatedUser
-        }
+        return FirebaseUserRepository.updateProfile(req)
+    }
+
+    fun restoreSession(): User? {
+        return FirebaseUserRepository.restoreSession()
     }
 }

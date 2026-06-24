@@ -2,11 +2,12 @@ package com.tnt.donarya.presentation.ui
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.tnt.donarya.data.NotificationHelper
+import com.tnt.donarya.data.NotifPayload
 import com.tnt.donarya.data.repository.NotificationRepositoryImpl
 import com.tnt.donarya.domain.model.NotificationItem
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,9 +25,11 @@ class NotificationsViewModel : ViewModel() {
 
     private var seenIds = mutableSetOf<String>()
 
-    fun loadNotifications(context: Context? = null) {
+    init { viewModelScope.launch { loadNotifications() } }
+
+    suspend fun loadNotifications(context: Context? = null) {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-        kotlinx.coroutines.runBlocking {
+        try {
             val list = NotificationRepositoryImpl.getNotifications()
             val unread = list.count { !it.isRead }
 
@@ -34,10 +37,15 @@ class NotificationsViewModel : ViewModel() {
                 NotificationHelper.init(context)
                 val newOnes = list.filter { it.id !in seenIds && !it.isRead }
                 if (newOnes.isNotEmpty()) {
-                    val grouped = newOnes.map {
-                        Triple(it.id, "DonarYa", it.message)
+                    val payloads = newOnes.map { item ->
+                        NotifPayload(
+                            id = item.id,
+                            title = "DonarYa",
+                            message = item.message,
+                            relatedNeedId = item.relatedNeedId ?: ""
+                        )
                     }
-                    NotificationHelper.showMultiple(context, grouped)
+                    NotificationHelper.showMultiple(context, payloads)
                     seenIds.addAll(newOnes.map { it.id })
                 }
             }
@@ -47,23 +55,29 @@ class NotificationsViewModel : ViewModel() {
                 unreadCount = unread,
                 isLoading = false
             )
+        } catch (_: Exception) {
+            _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
 
     fun markAsRead(notiId: String) {
-        kotlinx.coroutines.runBlocking {
-            NotificationRepositoryImpl.markAsRead(notiId)
-            val list = NotificationRepositoryImpl.getNotifications()
-            val unread = list.count { !it.isRead }
-            _uiState.value = _uiState.value.copy(
-                notifications = list,
-                unreadCount = unread
-            )
+        viewModelScope.launch {
+            try {
+                NotificationRepositoryImpl.markAsRead(notiId)
+                val list = NotificationRepositoryImpl.getNotifications()
+                val unread = list.count { !it.isRead }
+                _uiState.value = _uiState.value.copy(
+                    notifications = list,
+                    unreadCount = unread
+                )
+            } catch (_: Exception) { }
         }
     }
 
     fun refresh(context: Context? = null) {
-        NotificationRepositoryImpl.invalidateCache()
-        loadNotifications(context)
+        viewModelScope.launch {
+            NotificationRepositoryImpl.invalidateCache()
+            loadNotifications(context)
+        }
     }
 }

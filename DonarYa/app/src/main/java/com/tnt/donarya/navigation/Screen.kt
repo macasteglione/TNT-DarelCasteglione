@@ -14,10 +14,6 @@ sealed class Screen(val route: String) {
         fun createRoute(role: String) = "profile/$role"
     }
 
-    object NeedDetail : Screen("need_detail/{needId}") {
-        fun createRoute(id: String) = "need_detail/$id"
-    }
-
     object Register : Screen("register/{rolInicial}") {
         fun createRoute(rol: String) = "register/$rol"
     }

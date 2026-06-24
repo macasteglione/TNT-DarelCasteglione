@@ -2,8 +2,6 @@ package com.tnt.donarya.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tnt.donarya.data.remote.ApiClient
-import com.tnt.donarya.data.remote.dto.CreateNeedRequestDto
 import com.tnt.donarya.data.remote.dto.UpdateNeedRequestDto
 import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.NeedRepositoryImpl
@@ -17,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed class PublishNeedUiState {
-    object Idle    : PublishNeedUiState()
+    object Idle : PublishNeedUiState()
     object Loading : PublishNeedUiState()
     object Success : PublishNeedUiState()
     data class Error(val message: String) : PublishNeedUiState()
@@ -72,27 +70,7 @@ class PublishNeedViewModel : ViewModel() {
                 isCovered = false
             )
             NeedRepositoryImpl.add(merenderoId, need)
-            NeedRepositoryImpl.invalidateCache()
             _uiState.value = PublishNeedUiState.Success
-        }
-    }
-
-    fun eliminarNecesidad(needId: String, onEliminadoSuccess: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = PublishNeedUiState.Loading
-
-            val result = NeedRepositoryImpl.delete(needId)
-
-            if (result.isSuccess) {
-                _uiState.value = PublishNeedUiState.Success
-                // Volvemos al hilo principal para avisarle a la pantalla que cierre
-                viewModelScope.launch(Dispatchers.Main) {
-                    onEliminadoSuccess()
-                }
-            } else {
-                val errorMsg = result.exceptionOrNull()?.message ?: "Error al eliminar"
-                _uiState.value = PublishNeedUiState.Error(errorMsg)
-            }
         }
     }
 
@@ -122,7 +100,6 @@ class PublishNeedViewModel : ViewModel() {
             )
             val result = NeedRepositoryImpl.update(needId, req)
             if (result.isSuccess) {
-                NeedRepositoryImpl.invalidateCache()
                 _uiState.value = PublishNeedUiState.Success
             } else {
                 _uiState.value = PublishNeedUiState.Error(

@@ -13,7 +13,6 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.tnt.donarya.data.remote.dto.UpdateProfileRequestDto
 import com.tnt.donarya.data.repository.UserRepositoryImpl
-import com.tnt.donarya.domain.model.AddressSuggestion
 import com.tnt.donarya.domain.model.User
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.domain.usecase.RegisterUseCase
@@ -26,11 +25,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 class RegisterViewModel(application: Application) : AndroidViewModel(application) {
 
     private val registerUseCase = RegisterUseCase(UserRepositoryImpl)
-    private val placesClient = Places.createClient(application)
+    private val placesClient = try {
+        Places.createClient(application)
+    } catch (e: Exception) {
+        Log.e("PlacesAPI", "Failed to create Places client", e)
+        null
+    }
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
     private val geocoder = Geocoder(application, Locale.getDefault())
 
@@ -62,7 +67,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
         whatsapp.value = user.whatsapp ?: ""
         direccion.value = user.direccion ?: ""
         selectedRole.value = user.rol
-        
+
         // No tenemos lat/lng en User directamente pero si en el repo/perfil
         // Si el merendero tiene coordenadas, deberíamos traerlas.
         viewModelScope.launch {
@@ -85,20 +90,27 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
         }
         addressSearchJob?.cancel()
         addressSearchJob = viewModelScope.launch {
-            delay(500)
-            val request = FindAutocompletePredictionsRequest.builder()
-                .setQuery(query)
-                .build()
-
-            placesClient.findAutocompletePredictions(request)
-                .addOnSuccessListener { response ->
-                    Log.d("PlacesAPI", "Results found: ${response.autocompletePredictions.size}")
-                    _addressSuggestions.value = response.autocompletePredictions
-                }
-                .addOnFailureListener { exception ->
-                    Log.e("PlacesAPI", "Error searching address", exception)
-                    _addressSuggestions.value = emptyList()
-                }
+            delay(500.milliseconds)
+            if (placesClient != null) {
+                val request = FindAutocompletePredictionsRequest.builder()
+                    .setQuery(query)
+                    .build()
+                placesClient.findAutocompletePredictions(request)
+                    .addOnSuccessListener { response ->
+                        Log.d(
+                            "PlacesAPI",
+                            "Results found: ${response.autocompletePredictions.size}"
+                        )
+                        _addressSuggestions.value = response.autocompletePredictions
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e("PlacesAPI", "Error searching address", exception)
+                        _addressSuggestions.value = emptyList()
+                    }
+            } else {
+                Log.w("PlacesAPI", "Places client not available, skipping search")
+                _addressSuggestions.value = emptyList()
+            }
         }
     }
 
@@ -109,6 +121,13 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
 
         viewModelScope.launch {
             try {
+                if (placesClient == null) {
+                    Log.w("PlacesAPI", "Places client not available, using display text")
+                    direccion.value = prediction.getPrimaryText(null).toString()
+                    onAddressSet(prediction.getPrimaryText(null).toString())
+                    _addressSuggestions.value = emptyList()
+                    return@launch
+                }
                 val response = placesClient.fetchPlace(request).await()
                 val place = response.place
                 place.latLng?.let {
@@ -122,7 +141,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                 }
                 _addressSuggestions.value = emptyList()
             } catch (e: Exception) {
-                // Manejar error
+                Log.e("PlacesAPI", "Error fetching place details", e)
             }
         }
     }
@@ -135,7 +154,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                     selectedLat = it.latitude
                     selectedLng = it.longitude
                     _selectedLocation.value = Pair(selectedLat, selectedLng)
-                    
+
                     // Obtener dirección a partir de coordenadas
                     val addresses = geocoder.getFromLocation(it.latitude, it.longitude, 1)
                     addresses?.firstOrNull()?.let { address ->
@@ -143,7 +162,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                         direccion.value = addressLine
                     }
                 }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 // Permisos no otorgados
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -155,7 +174,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
         selectedLat = lat
         selectedLng = lng
         _selectedLocation.value = Pair(lat, lng)
-        
+
         onAddressSet?.let { callback ->
             viewModelScope.launch(Dispatchers.IO) {
                 try {
@@ -170,10 +189,6 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
-    }
-
-    fun clearAddressSuggestions() {
-        _addressSuggestions.value = emptyList()
     }
 
     fun registrar(
@@ -202,12 +217,9 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
     }
 
 
-
     fun actualizar(
         nombre: String,
         email: String,
-        contrasenia: String,
-        rol: UserRole,
         nombreComedor: String? = null,
         whatsapp: String? = null,
         direccion: String? = null

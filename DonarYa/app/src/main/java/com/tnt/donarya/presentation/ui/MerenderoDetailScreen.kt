@@ -3,7 +3,6 @@ package com.tnt.donarya.presentation.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,10 +19,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Verified
@@ -35,48 +33,38 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tnt.donarya.presentation.viewmodel.MerenderoDetailViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tnt.donarya.data.repository.UserRepositoryImpl
+import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.MerenderoDetailUiState
+import com.tnt.donarya.presentation.viewmodel.MerenderoDetailViewModel
 import com.tnt.donarya.ui.components.ItemChip
 import com.tnt.donarya.ui.components.UrgencyBadge
-import androidx.core.net.toUri
-import androidx.compose.runtime.LaunchedEffect
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MerenderoDetailScreen(
     needId: String,
-    onBack: () -> Unit,
-    onVoyParaAllá: () -> Unit
+    onBack: () -> Unit
 ) {
     val viewModel: MerenderoDetailViewModel = viewModel()
 
     val confirmState by viewModel.confirmState.collectAsState()
 
-    //viewModel.loadMerendero(merenderoId)
     LaunchedEffect(needId) {
         viewModel.loadNeed(needId)
     }
@@ -137,7 +125,7 @@ fun MerenderoDetailScreen(
                             Column {
                                 IconButton(onClick = onBack) {
                                     Icon(
-                                        Icons.Default.ArrowBack,
+                                        Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Volver",
                                         tint = Color.White
                                     )
@@ -224,69 +212,37 @@ fun MerenderoDetailScreen(
                             SectionTitle("Cómo llegar")
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Live Map
-                            val merenderoPos = LatLng(merendero.latitude, merendero.longitude)
-                            val cameraPositionState = rememberCameraPositionState {
-                                position = CameraPosition.fromLatLngZoom(merenderoPos, 15f)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFE8F5E9))
-                            ) {
-                                GoogleMap(
-                                    modifier = Modifier.fillMaxSize(),
-                                    cameraPositionState = cameraPositionState,
-                                    properties = MapProperties(isMyLocationEnabled = false),
-                                    uiSettings = MapUiSettings(
-                                        zoomControlsEnabled = false,
-                                        myLocationButtonEnabled = false,
-                                        scrollGesturesEnabled = false,
-                                        zoomGesturesEnabled = false,
-                                        rotationGesturesEnabled = false,
-                                        tiltGesturesEnabled = false
-                                    ),
-                                    onMapClick = {
-                                        val lat = merendero.latitude
-                                        val lng = merendero.longitude
-                                        val uri = if (lat != 0.0 && lng != 0.0) {
-                                            "geo:$lat,$lng?q=$lat,$lng(Merendero ${merendero.name})".toUri()
-                                        } else {
-                                            val address = "${merendero.address}, ${merendero.neighborhood}"
-                                            "geo:0,0?q=${Uri.encode(address)}".toUri()
-                                        }
-
-                                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                            setPackage("com.google.android.apps.maps")
-                                        }
-                                        context.startActivity(intent)
+                            OutlinedButton(
+                                onClick = {
+                                    val address = "${merendero.address}, ${merendero.neighborhood}"
+                                    val hasCoords =
+                                        merendero.latitude != 0.0 && merendero.longitude != 0.0
+                                    val uri = if (hasCoords) {
+                                        "geo:${merendero.latitude},${merendero.longitude}?q=${merendero.latitude},${merendero.longitude}(Merendero ${merendero.name})".toUri()
+                                    } else {
+                                        "geo:0,0?q=${Uri.encode(address)}".toUri()
                                     }
-                                ) {
-                                    Marker(
-                                        state = rememberMarkerState(position = merenderoPos),
-                                        title = merendero.name
-                                    )
-                                }
-
-                                // Overlay info
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(12.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color.White
-                                ) {
-                                    Text(
-                                        "${merendero.distanceKm} km · ~${merendero.walkMinutes} min caminando",
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        color = Color(0xFF1B4332),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        setPackage("com.google.android.apps.maps")
+                                    }
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFF4285F4)
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4285F4)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Tocar para abrir en Google Maps",
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -315,7 +271,7 @@ fun MerenderoDetailScreen(
                                 )
                             ) {
                                 Icon(
-                                    Icons.Default.Chat,
+                                    Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
                                     tint = Color(0xFF25D366)
                                 )
@@ -332,48 +288,79 @@ fun MerenderoDetailScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // CTA
-                            Button(
-                                onClick = {
-                                    if (needId != null) {
-                                        viewModel.confirmarDonacion(needId)
-                                    }
-                                },
-                                enabled = confirmState !is MerenderoDetailViewModel.ConfirmState.Loading
-                                        && confirmState !is MerenderoDetailViewModel.ConfirmState.Success,
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = when (confirmState) {
-                                        is MerenderoDetailViewModel.ConfirmState.Success -> Color(0xFF22C55E)
-                                        else -> Color(0xFF1B4332)
-                                    }
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                when (confirmState) {
-                                    is MerenderoDetailViewModel.ConfirmState.Loading ->
-                                        CircularProgressIndicator(
-                                            color = Color.White,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    is MerenderoDetailViewModel.ConfirmState.Success ->
-                                        Text("✓ ¡Avisaste que vas!", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    is MerenderoDetailViewModel.ConfirmState.Error ->
-                                        Text("Error — intentá de nuevo", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    else ->
-                                        Text("Voy para allá", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                }
-                            }
+                            val currentUser = UserRepositoryImpl.getCurrentUser()
+                            if (currentUser?.rol == UserRole.DONANTE) {
+                                Button(
+                                    onClick = {
+                                        if (needId != null) {
+                                            viewModel.confirmarDonacion(needId)
+                                        }
+                                    },
+                                    enabled = confirmState !is MerenderoDetailViewModel.ConfirmState.Loading
+                                            && confirmState !is MerenderoDetailViewModel.ConfirmState.Success,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = when (confirmState) {
+                                            is MerenderoDetailViewModel.ConfirmState.Success -> Color(
+                                                0xFF22C55E
+                                            )
 
-                            // Mostrar error como texto si falló
-                            if (confirmState is MerenderoDetailViewModel.ConfirmState.Error) {
-                                Text(
-                                    (confirmState as MerenderoDetailViewModel.ConfirmState.Error).message,
-                                    color = Color(0xFFE63946),
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-                            }
+                                            else -> Color(0xFF1B4332)
+                                        },
+                                        contentColor = Color.White,
+                                        disabledContainerColor = when (confirmState) {
+                                            is MerenderoDetailViewModel.ConfirmState.Success -> Color(
+                                                0xFF22C55E
+                                            )
+
+                                            else -> Color(0xFF1B4332)
+                                        },
+                                        disabledContentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    when (confirmState) {
+                                        is MerenderoDetailViewModel.ConfirmState.Loading ->
+                                            CircularProgressIndicator(
+                                                color = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+
+                                        is MerenderoDetailViewModel.ConfirmState.Success ->
+                                            Text(
+                                                "✓ ¡Avisaste que vas!",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+
+                                        is MerenderoDetailViewModel.ConfirmState.Error ->
+                                            Text(
+                                                "Error — intentá de nuevo",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                            )
+
+                                        else ->
+                                            Text(
+                                                "Voy para allá",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                    }
+                                }
+
+                                // Mostrar error como texto si falló
+                                if (confirmState is MerenderoDetailViewModel.ConfirmState.Error) {
+                                    Text(
+                                        (confirmState as MerenderoDetailViewModel.ConfirmState.Error).message,
+                                        color = Color(0xFFE63946),
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
+                            } // end if DONANTE
                         }
                     }
                 }

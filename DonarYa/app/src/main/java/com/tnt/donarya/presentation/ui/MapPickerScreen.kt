@@ -4,15 +4,29 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +37,12 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 
 @Composable
@@ -65,9 +84,10 @@ fun MapPickerScreen(
     }
 
     val selectedLocation by viewModel.selectedLocation.collectAsState()
-    
+
     // Buenos Aires por defecto si no hay nada
-    val initialPos = selectedLocation?.let { LatLng(it.first, it.second) } ?: LatLng(-34.6037, -58.3816)
+    val initialPos =
+        selectedLocation?.let { LatLng(it.first, it.second) } ?: LatLng(-34.6037, -58.3816)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialPos, 15f)
     }
@@ -130,7 +150,11 @@ fun MapPickerScreen(
             // Confirm button
             ExtendedFloatingActionButton(
                 onClick = {
-                    viewModel.setLocation(markerPosition.latitude, markerPosition.longitude, onAddressSelected)
+                    viewModel.setLocation(
+                        markerPosition.latitude,
+                        markerPosition.longitude,
+                        onAddressSelected
+                    )
                     onBack()
                 },
                 containerColor = Color(0xFFF48C06),

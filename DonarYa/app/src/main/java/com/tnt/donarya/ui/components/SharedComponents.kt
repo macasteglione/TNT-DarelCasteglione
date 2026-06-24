@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -119,6 +118,8 @@ fun DonarYaBottomBar(
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF40916C),
                     selectedTextColor = Color(0xFF40916C),
+                    unselectedIconColor = Color(0xFF111827),
+                    unselectedTextColor = Color(0xFF111827),
                     indicatorColor = Color(0xFFD8F3DC)
                 )
             )
@@ -128,14 +129,16 @@ fun DonarYaBottomBar(
                 onClick = onDonar,
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Donar"
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Inicio"
                     )
                 },
-                label = { Text("Donar") },
+                label = { Text("Inicio") },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF40916C),
                     selectedTextColor = Color(0xFF40916C),
+                    unselectedIconColor = Color(0xFF111827),
+                    unselectedTextColor = Color(0xFF111827),
                     indicatorColor = Color(0xFFD8F3DC)
                 )
             )
@@ -174,6 +177,8 @@ fun DonarYaBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF40916C),
                 selectedTextColor = Color(0xFF40916C),
+                unselectedIconColor = Color(0xFF111827),
+                unselectedTextColor = Color(0xFF111827),
                 indicatorColor = Color(0xFFD8F3DC)
             )
         )
@@ -190,6 +195,8 @@ fun DonarYaBottomBar(
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF40916C),
                 selectedTextColor = Color(0xFF40916C),
+                unselectedIconColor = Color(0xFF111827),
+                unselectedTextColor = Color(0xFF111827),
                 indicatorColor = Color(0xFFD8F3DC)
             )
         )

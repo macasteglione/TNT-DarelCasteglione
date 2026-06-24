@@ -2,9 +2,9 @@ package com.tnt.donarya.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tnt.donarya.data.remote.ApiClient
 import com.tnt.donarya.data.remote.dto.DonationHistoryDto
 import com.tnt.donarya.data.remote.dto.NeedHistoryDto
+import com.tnt.donarya.data.repository.FirebaseUserRepository
 import com.tnt.donarya.data.repository.MerenderoRepositoryImpl
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.Merendero
@@ -36,7 +36,9 @@ class ProfileViewModel : ViewModel() {
         loadProfile()
     }
 
-    fun refresh() { loadProfile() }
+    fun refresh() {
+        loadProfile()
+    }
 
     private fun loadProfile() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -47,11 +49,11 @@ class ProfileViewModel : ViewModel() {
             }
 
             val donationHistory = if (user?.rol != UserRole.MERENDERO)
-                ApiClient.getDonationHistory().getOrNull() ?: emptyList()
+                FirebaseUserRepository.getDonationHistory()
             else emptyList()
 
             val needsHistory = if (user?.rol == UserRole.MERENDERO)
-                ApiClient.getNeedsHistory().getOrNull() ?: emptyList()
+                FirebaseUserRepository.getNeedsHistory()
             else emptyList()
 
             _profileData.value = ProfileData(

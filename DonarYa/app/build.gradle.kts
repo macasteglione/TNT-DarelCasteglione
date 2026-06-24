@@ -20,16 +20,12 @@ android {
     }
 
     buildTypes {
-        debug {
-            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com/api\"")
-        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://donarya-backend-6wsq.onrender.com/api\"")
         }
     }
     compileOptions {
@@ -61,6 +57,7 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -73,8 +70,6 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
 
-    implementation(libs.gson)
-
     // Force newer versions of vectordrawable to avoid namespace conflicts
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.vectordrawable)
@@ -86,11 +81,4 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.google.places)
 
-    // Ktor client
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.gson)
-
-    implementation(platform(libs.firebase.bom))
 }

@@ -1,21 +1,87 @@
 package com.tnt.donarya.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.tnt.donarya.data.remote.dto.UpdateNeedRequestDto
 import com.tnt.donarya.domain.model.NeedItem
 import com.tnt.donarya.domain.model.NeedType
 import com.tnt.donarya.domain.model.UrgencyLevel
 import com.tnt.donarya.domain.repository.NeedRepository
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirebaseNeedRepository : NeedRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val needsCollection = db.collection("needs")
+    private val confirmationsCollection = db.collection("donorConfirmations")
+
+    suspend fun confirmNeed(needId: String): Result<Int> {
+        val userId = FirebaseUserRepository.getCurrentUser()?.id
+            ?: return Result.failure(Exception("No hay usuario logueado"))
+        return try {
+            val confirmationId = "${needId}_${userId}"
+            val existing = confirmationsCollection.document(confirmationId).get().await()
+            if (existing.exists()) {
+                return Result.failure(Exception("Ya confirmaste esta donación"))
+            }
+
+            confirmationsCollection.document(confirmationId).set(
+                hashMapOf(
+                    "needId" to needId,
+                    "userId" to userId,
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+            ).await()
+
+            needsCollection.document(needId)
+                .update("donorsOnWay", com.google.firebase.firestore.FieldValue.increment(1))
+                .await()
+
+            val updated = needsCollection.document(needId).get().await()
+            val donorsOnWay = (updated.data?.get("donorsOnWay") as? Long)?.toInt() ?: 1
+
+            // Crear notificación para el usuario del merendero (no el docId del merendero)
+            val needData = updated.data
+            val merenderoId = needData?.get("merenderoId") as? String ?: ""
+            if (merenderoId.isNotEmpty()) {
+                val merenderoUser = db.collection("users")
+                    .whereEqualTo("merenderoId", merenderoId)
+                    .get()
+                    .await()
+                    .documents
+                    .firstOrNull()
+                val merenderoUserId = merenderoUser?.id ?: ""
+                if (merenderoUserId.isNotEmpty()) {
+                    val notiData = hashMapOf(
+                        "userId" to merenderoUserId,
+                        "type" to "DONATION_CONFIRMED",
+                        "message" to "Un donante confirmó su ayuda para: ${needData?.get("title") ?: ""}",
+                        "relatedNeedId" to needId,
+                        "relatedUserId" to userId,
+                        "isRead" to false,
+                        "createdAt" to java.text.SimpleDateFormat(
+                            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                            java.util.Locale.US
+                        ).format(java.util.Date())
+                    )
+                    db.collection("notifications").add(notiData).await()
+                }
+            }
+
+            Result.success(donorsOnWay)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun checkIfConfirmed(needId: String): Boolean {
+        val userId = FirebaseUserRepository.getCurrentUser()?.id ?: return false
+        return try {
+            val confirmationId = "${needId}_${userId}"
+            confirmationsCollection.document(confirmationId).get().await().exists()
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     override suspend fun getByMerendero(merenderoId: String): List<NeedItem> {
         return try {
@@ -23,30 +89,11 @@ class FirebaseNeedRepository : NeedRepository {
                 .whereEqualTo("merenderoId", merenderoId)
                 .get()
                 .await()
-            
+
             snapshot.documents.mapNotNull { it.toNeedItem() }
         } catch (e: Exception) {
             emptyList()
         }
-    }
-
-    /**
-     * Devuelve un Flow que emite la lista de necesidades en tiempo real
-     */
-    fun getByMerenderoRealtime(merenderoId: String): Flow<List<NeedItem>> = callbackFlow {
-        val subscription = needsCollection
-            .whereEqualTo("merenderoId", merenderoId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    val items = snapshot.documents.mapNotNull { it.toNeedItem() }
-                    trySend(items)
-                }
-            }
-        awaitClose { subscription.remove() }
     }
 
     override suspend fun add(merenderoId: String, need: NeedItem) {
@@ -62,13 +109,45 @@ class FirebaseNeedRepository : NeedRepository {
             "donorsOnWay" to 0
         )
         needsCollection.add(data).await()
+
+        // Notificar a todos los donantes
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val donors = db.collection("users")
+                    .whereEqualTo("rol", "DONANTE")
+                    .get()
+                    .await()
+                val batch = db.batch()
+                val now =
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+                        .format(java.util.Date())
+                for (doc in donors.documents) {
+                    val donorId = doc.id
+                    val notiRef = db.collection("notifications").document()
+                    batch.set(
+                        notiRef, hashMapOf(
+                            "userId" to donorId,
+                            "type" to "NEW_NEED",
+                            "message" to "Nueva necesidad publicada: ${need.title}",
+                            "relatedNeedId" to "",
+                            "relatedUserId" to merenderoId,
+                            "isRead" to false,
+                            "createdAt" to now
+                        )
+                    )
+                }
+                batch.commit().await()
+            } catch (e: Exception) {
+                android.util.Log.e("FirebaseNeedRepo", "Error al notificar donantes", e)
+            }
+        }
     }
 
     override fun markAsCovered(needId: String): Result<Unit> {
-        // En una implementación real, esto debería ser suspend o usar un callback
-        // Para mantener compatibilidad con la interfaz actual:
         return try {
-            needsCollection.document(needId).update("isCovered", true)
+            kotlinx.coroutines.runBlocking {
+                needsCollection.document(needId).update("isCovered", true).await()
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
