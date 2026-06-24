@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +61,8 @@ import com.tnt.donarya.data.GlobalNotificationObserver
 import com.tnt.donarya.data.repository.UserRepositoryImpl
 import com.tnt.donarya.domain.model.UserRole
 import com.tnt.donarya.presentation.state.RegisterUiState
+import com.tnt.donarya.ui.components.CountryCodePicker
+import com.tnt.donarya.ui.components.countryCodes
 import com.tnt.donarya.presentation.viewmodel.RegisterViewModel
 
 @Composable
@@ -85,6 +89,15 @@ fun RegisterScreen(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     val suggestions by viewModel.addressSuggestions.collectAsState()
+
+    var countryCode by remember { mutableStateOf("+54") }
+    LaunchedEffect(whatsapp) {
+        if (whatsapp.isNotEmpty()) {
+            countryCodes.firstOrNull { whatsapp.startsWith(it.code) }?.let {
+                countryCode = it.code
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.resetState()
@@ -307,21 +320,45 @@ fun RegisterScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            OutlinedTextField(
-                                value = whatsapp,
-                                onValueChange = { viewModel.whatsapp.value = it },
-                                label = {
-                                    Text(
-                                        "WhatsApp *",
-                                        color = Color.White.copy(alpha = 0.7f)
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                colors = fieldColors(),
-                                shape = RoundedCornerShape(12.dp)
+                            Text(
+                                "WhatsApp *",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                CountryCodePicker(
+                                    selectedCode = countryCode,
+                                    onCodeSelected = {
+                                        val oldCode = countryCode
+                                        countryCode = it
+                                        val local = if (whatsapp.startsWith(oldCode)) whatsapp.removePrefix(oldCode) else whatsapp
+                                        viewModel.whatsapp.value = it + local
+                                    },
+                                    modifier = Modifier.width(120.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                OutlinedTextField(
+                                    value = if (whatsapp.startsWith(countryCode)) whatsapp.removePrefix(countryCode) else whatsapp,
+                                    onValueChange = {
+                                        viewModel.whatsapp.value = countryCode + it
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            "Número",
+                                            color = Color.White.copy(alpha = 0.5f)
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                    colors = fieldColors(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
