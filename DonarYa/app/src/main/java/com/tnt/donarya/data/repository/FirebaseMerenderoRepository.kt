@@ -77,4 +77,9 @@ object FirebaseMerenderoRepository : MerenderoRepository {
     fun invalidateCache() {
         cached = null
     }
+
+    suspend fun updateWhatsapp(merenderoId: String, whatsapp: String) {
+        merenderosCollection.document(merenderoId).update("whatsapp", whatsapp).await()
+        cached = null
+    }
 }

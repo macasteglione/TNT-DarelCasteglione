@@ -60,6 +60,7 @@ import com.tnt.donarya.domain.model.UrgencyLevel
 import com.tnt.donarya.presentation.viewmodel.PublishNeedUiState
 import com.tnt.donarya.presentation.viewmodel.PublishNeedViewModel
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishNeedScreen(
@@ -75,7 +76,6 @@ fun PublishNeedScreen(
     var selectedUrgency by remember { mutableStateOf<UrgencyLevel?>(null) }
     var description by remember { mutableStateOf("") }
     var items by remember { mutableStateOf(emptyList<String>()) }
-    // Usás whatsappFromVM en lugar de initialWhatsapp
     var whatsapp by remember(whatsappFromVM) { mutableStateOf(whatsappFromVM) }
     var newItem by remember { mutableStateOf("") }
 
@@ -348,7 +348,8 @@ fun PublishNeedScreen(
                             type = type,
                             urgency = urgency,
                             description = description,
-                            items = items
+                            items = items,
+                            whatsapp = whatsapp
                         )
                     }
                 },

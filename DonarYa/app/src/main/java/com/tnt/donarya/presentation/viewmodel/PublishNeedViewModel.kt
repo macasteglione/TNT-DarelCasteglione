@@ -43,6 +43,7 @@ class PublishNeedViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val user = UserRepositoryImpl.getCurrentUser()
             val merenderoId = user?.merenderoId ?: return@launch
+            MerenderoRepositoryImpl.invalidateCache()
             val merendero = MerenderoRepositoryImpl.getById(merenderoId)
             _whatsapp.value = merendero?.whatsapp ?: ""
         }
@@ -53,10 +54,12 @@ class PublishNeedViewModel : ViewModel() {
         type: NeedType,
         urgency: UrgencyLevel,
         description: String,
-        items: List<String>
+        items: List<String>,
+        whatsapp: String
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = PublishNeedUiState.Loading
+            MerenderoRepositoryImpl.updateWhatsapp(merenderoId, whatsapp)
             val need = NeedItem(
                 id = System.currentTimeMillis().toString(),
                 merenderoId = merenderoId,
