@@ -20,4 +20,8 @@ object MerenderoRepositoryImpl : MerenderoRepository {
     fun invalidateCache() {
         FirebaseMerenderoRepository.invalidateCache()
     }
+
+    suspend fun updateWhatsapp(merenderoId: String, whatsapp: String) {
+        FirebaseMerenderoRepository.updateWhatsapp(merenderoId, whatsapp)
+    }
 }

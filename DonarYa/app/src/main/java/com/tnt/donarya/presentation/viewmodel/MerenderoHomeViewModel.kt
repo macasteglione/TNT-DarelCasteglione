@@ -144,7 +144,7 @@ class MerenderoHomeViewModel : ViewModel() {
 
             _uiState.value = MerenderoHomeUiState.Success(
                 merendero = merendero,
-                activeNeeds = needs.filter { !it.isCovered },
+                activeNeeds = needs.filter { !it.isCovered }.sortedBy { it.urgency.ordinal },
                 coveredNeeds = needs.filter { it.isCovered }
             )
         } catch (e: Exception) {

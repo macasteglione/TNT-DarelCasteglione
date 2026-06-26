@@ -45,7 +45,9 @@ class MerenderoListViewModel : ViewModel() {
                 val merenderosWithNeeds = merenderos.map { merendero ->
                     MerenderoWithNeeds(
                         merendero = merendero,
-                        needs = needRepository.getByMerendero(merendero.id).filter { !it.isCovered }
+                        needs = needRepository.getByMerendero(merendero.id)
+                            .filter { !it.isCovered }
+                            .sortedBy { it.urgency.ordinal }
                     )
                 }
                 // Guardar IDs iniciales sin notificar
@@ -87,6 +89,7 @@ class MerenderoListViewModel : ViewModel() {
                             needs = needRepository.getByMerendero(
                                 merendero.id
                             ).filter { !it.isCovered }
+                                .sortedBy { it.urgency.ordinal }
                         )
                     }
 

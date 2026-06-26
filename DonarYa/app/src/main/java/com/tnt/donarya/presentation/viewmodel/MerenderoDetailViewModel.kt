@@ -38,6 +38,7 @@ class MerenderoDetailViewModel : ViewModel() {
                 return@launch
             }
 
+            MerenderoRepositoryImpl.invalidateCache()
             val merendero = merenderoRepository.getById(need.merenderoId)
 
             if (merendero == null) {
