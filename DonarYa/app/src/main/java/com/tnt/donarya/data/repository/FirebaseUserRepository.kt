@@ -192,6 +192,22 @@ object FirebaseUserRepository : UserRepository {
 
             usersCollection.document(uid).update(updates as Map<String, Any>).await()
 
+            // Si es merendero, actualizar también el documento en merenderos
+            val user = currentUser
+            if (user?.rol == UserRole.MERENDERO) {
+                val mId = user.merenderoId
+                if (mId != null) {
+                    val merenderoUpdates = hashMapOf<String, Any>(
+                        "whatsapp" to (req.whatsapp ?: ""),
+                        "name" to (req.nombreComedor ?: req.nombre),
+                        "coordinator" to req.nombre,
+                        "address" to (req.direccion ?: "")
+                    )
+                    db.collection("merenderos").document(mId)
+                        .update(merenderoUpdates as Map<String, Any>).await()
+                }
+            }
+
             val updatedUser = currentUser!!.copy(
                 nombre = req.nombre,
                 email = req.email,
